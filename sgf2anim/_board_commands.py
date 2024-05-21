@@ -14,6 +14,7 @@ MARKER_FUNC_NAMES = [
     "SQ",
     "TR",
 ]
+
 ANNOTATION_FUNC_NAMES = [
     "AR",
     "C",
@@ -101,10 +102,7 @@ def run_command(
     elif start_point is None:
         return None, False
 
-    elif function_name in [
-        "B",
-        "W",
-    ]:
+    elif function_name in ["B", "W"]:
         if (len(parameters)) == 0:
             return None, True
 
@@ -127,9 +125,7 @@ def run_command(
             board_image,
             paste_image,
             cell_size,
-            [
-                point,
-            ],
+            [point],
             start_point,
         )
 
@@ -142,6 +138,8 @@ def run_command(
                 extra_frame.alpha_composite(annotations_image)
 
             use_marker = get_settings().MARKER_INSTEAD_OF_NUMBERS
+            move_num_str = str(_move_num)
+            n_digits = 1 if use_marker else len(move_num_str)
             if use_marker:
                 paste_image = create_cell_text(
                     cell_size,
@@ -156,7 +154,7 @@ def run_command(
                     cell_size,
                     "0" if use_marker else str(_move_num),
                     color_for_black if function_name == "B" else color_for_white,
-                    get_settings().NUMBER_TEXT_SCALE,
+                    get_settings().NUMBER_TEXT_SCALE + (n_digits - 1) * 0.12,
                 )
 
             mass_paste_annotation(
@@ -167,9 +165,7 @@ def run_command(
                 stones_image,
                 paste_image,
                 cell_size,
-                [
-                    point,
-                ],
+                [point],
                 start_point,
                 board,
             )
@@ -178,7 +174,6 @@ def run_command(
         return extra_frame, False
 
     elif function_name in MARKER_FUNC_NAMES:
-        #
         paste_image = get_stone_images()[get_draw_cell_size()][function_name]
         points = decode_letter_coords(parameters)
         mass_paste_annotation(
@@ -210,9 +205,7 @@ def run_command(
                 stones_image,
                 paste_image,
                 cell_size,
-                [
-                    point,
-                ],
+                [point],
                 start_point,
                 board,
             )

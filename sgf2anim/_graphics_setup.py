@@ -68,10 +68,7 @@ def _load_resources():
     for key, value in _STONE_IMAGE_PATHS.items():
         image_path = os.path.join(res_dir, get_settings().STYLE_NAME, value)
         loaded_images[key] = Image.open(image_path)
-        if key not in [
-            "B",
-            "W",
-        ]:
+        if key not in ["B", "W"]:
             loaded_images[key] = make_color_copy(
                 loaded_images[key], get_settings().MARKER_COLOR
             )
@@ -165,16 +162,14 @@ def setup_board(sgf_path, nodes, commands_lists):
     if start_x <= 2 and (n_cells_wide - 1) >= max_x:
         start_x = 0
         end_x = n_cells_wide - 1
-    elif end_x >= board.get_width() - 3 and (board.get_width() - n_cells_wide) <= min_x:
+    elif end_x >= board.get_width() - 3 and board.get_width() - n_cells_wide <= min_x:
         start_x = board.get_width() - n_cells_wide
         end_x = start_x + n_cells_wide - 1
 
     if start_y <= 2 and (n_cells_high - 1) >= max_y:
         start_y = 0
         end_y = n_cells_high - 1
-    elif (
-        end_y >= board.get_height() - 3 and (board.get_height() - n_cells_high) <= min_x
-    ):
+    elif end_y >= board.get_height() - 3 and board.get_height() - n_cells_high <= min_x:
         start_y = board.get_height() - n_cells_high
         end_y = start_y + n_cells_high - 1
 
@@ -198,34 +193,15 @@ def setup_board(sgf_path, nodes, commands_lists):
         ]
     )
     cell_size = max(cell_size, get_settings().MIN_CELL_SIZE)
-    start_point = (
-        start_x,
-        start_y,
-    )
 
-    return (
-        board,
-        cell_size,
-        (
-            show_width,
-            show_height,
-        ),
-        (
-            start_x,
-            start_y,
-        ),
-    )
+    return board, cell_size, (show_width, show_height), (start_x, start_y)
 
 
 def decode_labels(parameters):
     points = []
     strings = []
     for parameter in parameters:
-        results = decode_letter_coords(
-            [
-                parameter[:2],
-            ]
-        )
+        results = decode_letter_coords([parameter[:2]])
         if len(results) == 0:
             continue
         points.append(results[0])
@@ -241,12 +217,7 @@ def decode_letter_coords(parameters):
         x = _letter_to_number(parameter[0])
         y = _letter_to_number(parameter[1])
         if x is not None and y is not None:
-            points.append(
-                (
-                    x,
-                    y,
-                )
-            )
+            points.append((x, y))
     return points
 
 

@@ -179,7 +179,6 @@ class WeiqiBoard:
 
         if not is_legality_probe:
             # adds board record.
-
             if (
                 n_opposing_captured == 1
                 and len(own_group) == 1

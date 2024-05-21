@@ -34,6 +34,9 @@ def process_directory(directory):
     print(sgf_file_paths[:5])
 
 
+
+
+
 # returns True if saving the GIF was successful.
 def save_GIF(sgf_path, save_path=None, save_as_diagram=False):
     reset_time()  # DEBUG
@@ -82,12 +85,26 @@ def save_GIF(sgf_path, save_path=None, save_as_diagram=False):
             # file cannot be used.
             return
 
-    # DEBUG
-    commands_lists = []
-    for node in nodes:
-        commands_lists.append(_to_commands(node))
+    commands_lists = [_to_commands(node) for node in nodes]
 
-    # commands_lists = [_to_commands(node) for node in nodes]
+    if (
+        len(nodes) == 1 
+        or (
+            len(nodes) == 2 
+            and not save_as_diagram 
+            and all(
+                [
+                    (func_name in ANNOTATION_FUNC_NAMES) 
+                    for func_name, _ in commands_lists[1]
+                ]
+            )
+        )
+    ):
+        # this doesn't need a GIF.
+        print(f"{sgf_path} doesn't need a GIF.")
+        return
+
+    # 
     board, cell_size, show_size, start_point = setup_board(
         sgf_path, nodes, commands_lists
     )
@@ -161,32 +178,12 @@ def save_GIF(sgf_path, save_path=None, save_as_diagram=False):
         if move_was_pass and get_settings().MAINTAIN_NUMBERS_AT_END:
             continue
 
-        """if extra_frame is not None and i + 1 == len(commands_lists) - 1:
-            next_commands = commands_lists[i + 1]
-            if all([
-                (function_name in ANNOTATION_FUNC_NAMES) 
-                for function_name, parameters in next_commands
-            ]):
-                # a node with only annotative commands
-                # will be stacked on the previous node.
-                continue"""
-
         if not save_as_diagram:
             image_of_stone_changes.alpha_composite(image_of_annotation_changes)
-            frames.append(
-                (
-                    image_of_stone_changes,
-                    False,
-                )
-            )
+            frames.append((image_of_stone_changes, False))
             # image_of_changes.show()
             if extra_frame is not None:
-                frames.append(
-                    (
-                        extra_frame,
-                        True,
-                    )
-                )
+                frames.append((extra_frame, True))
             image_of_stone_changes = _create_change_image(cell_size, show_size)
             image_of_annotation_changes = _create_change_image(cell_size, show_size)
 
@@ -205,9 +202,9 @@ def save_GIF(sgf_path, save_path=None, save_as_diagram=False):
                 colors=palette_size, method=Image.FASTOCTREE
             )
             compressed_gif.save(save_path, optimize=True, save_all=True)
-
         else:
             save_GIF_to_file(save_path, frames)
+
     except:
         print(f"{sgf_path} could not be rendered.")
         return False
@@ -269,16 +266,6 @@ def _to_commands(node_str):
 
 
 def _create_change_image(cell_size, show_size):
-    return Image.new(
-        "RGBA",
-        (
-            get_scaled_margin() * 2 + cell_size * show_size[0],
-            get_scaled_margin() * 2 + cell_size * show_size[1],
-        ),
-        (
-            0,
-            0,
-            0,
-            0,
-        ),
-    )
+    w = get_scaled_margin() * 2 + cell_size * show_size[0]
+    h = get_scaled_margin() * 2 + cell_size * show_size[1]
+    return Image.new("RGBA", (w, h), (0, 0, 0, 0))

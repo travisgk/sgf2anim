@@ -9,6 +9,8 @@ from ._graphics_setup import (
     set_annotation,
 )
 
+_TRANSPARENT = (0, 0, 0, 0)
+
 
 # clears the cells in the given <image_of_changes> with the given clear image.
 def mass_clear(image_of_changes, below_image, cell_size, points, start_point):
@@ -22,16 +24,7 @@ def mass_clear(image_of_changes, below_image, cell_size, points, start_point):
 def mass_paste_stone(
     stones_image, board_image, paste_image, cell_size, points, start_point
 ):
-    comp = Image.new(
-        "RGBA",
-        stones_image.size,
-        (
-            0,
-            0,
-            0,
-            0,
-        ),
-    )
+    comp = Image.new("RGBA", stones_image.size, _TRANSPARENT)
     for point in points:
         show_x = point[0] - start_point[0]
         show_y = point[1] - start_point[1]
@@ -55,16 +48,7 @@ def mass_paste_annotation(
     start_point,
     board,
 ):
-    comp = Image.new(
-        "RGBA",
-        annotations_image.size,
-        (
-            0,
-            0,
-            0,
-            0,
-        ),
-    )
+    comp = Image.new("RGBA", annotations_image.size, _TRANSPARENT)
 
     new_annotations = False
     for point in points:
@@ -87,17 +71,9 @@ def mass_paste_annotation(
         elif underneath_stone == WHITE_NUM:
             stone_cell = get_stone_images()[get_draw_cell_size()]["W"]
 
+        # a pre-existing stone is drawn underneath before the annotation is drawn.
         if stone_cell is not None:
-            stone_comp = Image.new(
-                "RGBA",
-                annotations_image.size,
-                (
-                    0,
-                    0,
-                    0,
-                    0,
-                ),
-            )
+            stone_comp = Image.new("RGBA", annotations_image.size, _TRANSPARENT)
             stone_comp.paste(stone_cell, (draw_x, draw_y))
             annotations_image.alpha_composite(stone_comp)
 
@@ -106,16 +82,7 @@ def mass_paste_annotation(
             label_bg = _create_label_background(
                 board_image_no_lines.crop(bbox), cell_size
             )
-            label_comp = Image.new(
-                "RGBA",
-                annotations_image.size,
-                (
-                    0,
-                    0,
-                    0,
-                    0,
-                ),
-            )
+            label_comp = Image.new("RGBA", annotations_image.size, _TRANSPARENT)
             label_comp.paste(label_bg, (draw_x, draw_y))
             annotations_image.alpha_composite(label_comp)
 
@@ -134,6 +101,7 @@ def _clear_cell(image_of_changes, below_image, cell_size, show_x, show_y):
     return crop_box
 
 
+# returns the pixel cropping box for the given local coordinates.
 def _get_cell_crop(cell_size, show_x, show_y):
     return (
         get_scaled_margin() + show_x * cell_size,
@@ -153,6 +121,6 @@ def _create_label_background(board_cell, cell_size):
         (start_coord, start_coord, start_coord + dim, start_coord + dim)
     )
 
-    bg = Image.new("RGBA", (cell_size, cell_size), (0, 0, 0, 0))
+    bg = Image.new("RGBA", (cell_size, cell_size), _TRANSPARENT)
     bg.paste(crop, (start_coord, start_coord))
     return bg

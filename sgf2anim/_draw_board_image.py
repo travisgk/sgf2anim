@@ -15,24 +15,16 @@ def draw_board_image(board, cell_size, show_size, start_pos):
     global _annotations, _draw_cell_size
     _annotations = [[None for _ in range(show_size[1])] for _ in range(show_size[0])]
 
-    static_board_image = Image.new(
-        "RGBA",
-        (
-            get_scaled_margin() * 2 + cell_size * show_size[0],
-            get_scaled_margin() * 2 + cell_size * show_size[1],
-        ),
-        (
-            243,
-            176,
-            109,
-            255,
-        ),
+    image_size = (
+        get_scaled_margin() * 2 + cell_size * show_size[0],
+        get_scaled_margin() * 2 + cell_size * show_size[1],
     )
+    static_board_image = Image.new("RGBA", image_size, (243, 176, 109, 255))
     static_board_no_lines = static_board_image.copy()
     draw = ImageDraw.Draw(static_board_image)
 
     px_offset = get_scaled_margin() + cell_size // 2
-    line_width = get_settings().LINE_THICKNESS + int(cell_size * 0.03)
+    line_width = int(get_settings().LINE_THICKNESS + cell_size * 0.03)
 
     # 1) draws the vertical lines.
     if start_pos[1] > 0:
@@ -82,12 +74,7 @@ def draw_board_image(board, cell_size, show_size, start_pos):
         )
 
     if board.get_width() % 2 == 1 and board.get_height() % 2 == 1:
-        star_points.add(
-            (
-                board.get_width() // 2,
-                board.get_height() // 2,
-            )
-        )
+        star_points.add((board.get_width() // 2, board.get_height() // 2))
 
     # 4) determines the cell size used in drawing so that
     #    all cells align in the center with the board's lines (if desired).
@@ -104,16 +91,7 @@ def draw_board_image(board, cell_size, show_size, start_pos):
 
     # 5) draws star point images.
     star_point_image = get_star_images()[adjusted_size]
-    comp = Image.new(
-        "RGBA",
-        static_board_image.size,
-        (
-            0,
-            0,
-            0,
-            0,
-        ),
-    )
+    comp = Image.new("RGBA", static_board_image.size, (0, 0, 0, 0))
     cols = set([point[0] for point in star_points])
     rows = set([point[1] for point in star_points])
     for x in range(show_size[0]):

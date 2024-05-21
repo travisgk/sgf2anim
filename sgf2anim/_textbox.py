@@ -131,4 +131,5 @@ def create_cell_text(cell_size, text, color, scale):
     center_x = int(cell_size / 2 - new_width / 2)
     center_y = int(cell_size / 2 - new_height / 2)
     render_plane.paste(image, (center_x, center_y))
+
     return render_plane
