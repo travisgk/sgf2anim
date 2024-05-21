@@ -1,6 +1,10 @@
 import copy
 import numpy as np
 
+BLACK_NUM = 1
+WHITE_NUM = 2
+
+
 def _point_north(p):
     return (p[0], p[1] - 1) if p[1] - 1 >= 0 else None
 
@@ -26,8 +30,10 @@ def _get_orthos(p, board_width, board_height):
     ]
     return [ortho for ortho in orthos if ortho is not None]
 
+
 _ONE_HOT_TRUE = 1
 _ONE_HOT_FALSE = 0
+
 
 class WeiqiBoard:
     def __init__(self, width, height, n_players):
@@ -38,31 +44,26 @@ class WeiqiBoard:
 
         self._board = np.array(
             [
-                [
-                    [_ONE_HOT_FALSE for _ in range(height)] for _ in range(width)
-                ] 
+                [[_ONE_HOT_FALSE for _ in range(height)] for _ in range(width)]
                 for _ in range(n_players)
-            ], dtype=np.byte
+            ],
+            dtype=np.byte,
         )
         self._prev_boards = {}
         self._n_stones = [0 for _ in range(n_players)]
         self._n_captured_stones = [0 for _ in range(n_players)]
 
-
     def get_width(self):
         return self._WIDTH
-
 
     def get_height(self):
         return self._HEIGHT
 
-
-    def get_player_num(self, x, y):
+    def get_player_num(self, p):
         for player_num in range(self._N_PLAYERS):
-            if self._board[x][y] == _ONE_HOT_TRUE:
-                return player_num
+            if self._board[player_num][p[0]][p[1]] == _ONE_HOT_TRUE:
+                return player_num + 1
         return 0
-
 
     def _select_orthoganally(self, p, index, group_list):
         if self._board[index][p[0]][p[1]] == _ONE_HOT_TRUE and p not in group_list:
@@ -71,18 +72,20 @@ class WeiqiBoard:
             for o in orthos:
                 self._select_orthoganally(o, index, group_list)
 
-
     def _find_liberties(self, GROUP_LIST):
         liberties = []
         for p in GROUP_LIST:
             orthos = _get_orthos(p, self._WIDTH, self._HEIGHT)
             for o in orthos:
-                if all(
-                    [
-                        self._board[i][o[0]][o[1]] == _ONE_HOT_FALSE 
-                        for i in range(self._N_PLAYERS)
-                    ]
-                ) and o not in liberties:
+                if (
+                    all(
+                        [
+                            self._board[i][o[0]][o[1]] == _ONE_HOT_FALSE
+                            for i in range(self._N_PLAYERS)
+                        ]
+                    )
+                    and o not in liberties
+                ):
                     liberties.append(o)
         return liberties
 
@@ -95,7 +98,7 @@ class WeiqiBoard:
                 for index in range(self._N_PLAYERS)
             ]
         ):
-            print("illegal: stone already exists there") # DEBUG
+            print("illegal: stone already exists there")  # DEBUG
             return False, []
 
         backup_board = copy.deepcopy(self._board)
@@ -122,7 +125,10 @@ class WeiqiBoard:
             if opposing_index is not None:
                 opposing_group = []
                 self._select_orthoganally(o, opposing_index, opposing_group)
-                if len(opposing_group) > 0 and len(self._find_liberties(opposing_group)) == 0:
+                if (
+                    len(opposing_group) > 0
+                    and len(self._find_liberties(opposing_group)) == 0
+                ):
                     # an opposing group has been captured by the play at <p>.
                     n_opposing_captured += len(opposing_group)
                     self._n_captured_stones[opposing_index] += len(opposing_group)
@@ -139,7 +145,7 @@ class WeiqiBoard:
         n_own_liberties = len(self._find_liberties(own_group))
 
         # checks for repetitions from Ko.
-        
+
         if n_opposing_captured == 1 and len(own_group) == 1:
             hash_num = hash(tuple(self._n_stones))
             if self._prev_boards.get(hash_num) is not None and any(
@@ -151,7 +157,7 @@ class WeiqiBoard:
                 self._n_stones = copy.deepcopy(backup_n_stones)
                 self._n_captured_stones = copy.deepcopy(backup_n_captured_stones)
                 return False, []
-        
+
         if n_opposing_captured == 0 and n_own_liberties == 0:
             if self._ALLOW_SELF_CAPTURE and len(own_group) > 1:
                 # a friendly group has captured itself with the play at <p>.
@@ -173,9 +179,9 @@ class WeiqiBoard:
 
         if not is_legality_probe:
             # adds board record.
-            
+
             if (
-                n_opposing_captured == 1 
+                n_opposing_captured == 1
                 and len(own_group) == 1
                 and n_own_liberties == 1
             ):
@@ -190,27 +196,22 @@ class WeiqiBoard:
 
         return True, cleared_points
 
-
     def move_is_legal(self, p, player_num):
         legal, _ = self._set_stone(p, player_to_move, is_legality_probe=True)
         return legal
 
-
     def add_initial_stone(self, p, player_num):
         index = player_num - 1
-        self._board[index][p[0]][p[1]] = _ONE_HOT_TRUE        
-
+        self._board[index][p[0]][p[1]] = _ONE_HOT_TRUE
 
     def add_empty_space(self, p):
         for i in range(self._N_PLAYERS):
             self._board[i][p[0]][p[1]] = _ONE_HOT_FALSE
 
-
     # returns True if the move was legal, and returns a list of captured points.
     def make_move(self, p, player_num):
         legal, cleared_points = self._set_stone(p, player_num)
         return legal, cleared_points
-
 
     def to_str(self):
         result = ""

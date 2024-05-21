@@ -2,13 +2,14 @@ import re
 import os
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
-from ._graphics_settings import get_settings
+from ._settings import get_settings
 
 _fonts = {}
 _char_images = {}
 _nums_for_black_images = []
 _nums_for_white_images = []
 _MAX_MOVE_NUM_IMG = 500
+
 
 def load_font(style_name):
     # loads fonts for various sizes.
@@ -29,12 +30,8 @@ def load_font(style_name):
     color_for_marker = get_settings().PLACEMENT_MARKER_COLOR
     image_path = os.path.join(res_dir, style_name, "placement.png")
     placement_image = Image.open(image_path)
-    _nums_for_black_images.append(
-        make_color_copy(placement_image, color_for_marker)
-    )
-    _nums_for_white_images.append(
-        make_color_copy(placement_image, color_for_marker)
-    )
+    _nums_for_black_images.append(make_color_copy(placement_image, color_for_marker))
+    _nums_for_white_images.append(make_color_copy(placement_image, color_for_marker))
     for i in range(1, _MAX_MOVE_NUM_IMG + 1):
         _nums_for_black_images.append(
             _render_cropped_text(256, str(i), color_for_black)
@@ -58,7 +55,7 @@ def make_color_copy(image, color):
 # returns the result of rendering text and cropped it by its bounding box.
 def _render_cropped_text(cell_size, text, color):
     PADDING_BOTTOM_PX = 15
-    render_plane = Image.new('RGBA', (300, 300), (0, 0, 0, 0))
+    render_plane = Image.new("RGBA", (300, 300), (0, 0, 0, 0))
     draw = ImageDraw.Draw(render_plane)
     font = _fonts[cell_size]
     bbox = draw.textbbox((0, 0), text, font=font)
@@ -66,13 +63,9 @@ def _render_cropped_text(cell_size, text, color):
 
     if len(text) == 1:
         if ord("a") <= ord(text[0]) <= ord("z"):
-            max_bbox = draw.textbbox(
-                (0, 0), "b", font=font
-            )
+            max_bbox = draw.textbbox((0, 0), "b", font=font)
         else:
-            max_bbox = draw.textbbox(
-                (0, 0), "0", font=font
-            )
+            max_bbox = draw.textbbox((0, 0), "0", font=font)
         max_bbox_width = max_bbox[2] - max_bbox[0]
         bbox_width = bbox[2] - bbox[0]
         padding_x = (max_bbox_width - bbox_width) / 2
@@ -98,14 +91,14 @@ def _render_cropped_text(cell_size, text, color):
 
 # returns an image of <cell_size> that contains the given <text>.
 def create_cell_text(cell_size, text, color, scale):
-    render_plane = Image.new('RGBA', (cell_size, cell_size), (0, 0, 0, 0))
+    render_plane = Image.new("RGBA", (cell_size, cell_size), (0, 0, 0, 0))
     if len(text) == 0:
         return render_plane
 
     render_as_placement_marker = False
     if len(text) == 1 and ord("a") <= ord(text[0]) <= ord("z"):
         image = _char_images[text[0]]
-    elif re.fullmatch(r'\d+', text):
+    elif re.fullmatch(r"\d+", text):
         move_num = int(text)
         if move_num == 0:
             render_as_placement_marker = True

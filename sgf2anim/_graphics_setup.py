@@ -1,7 +1,7 @@
 import os
 from PIL import Image, ImageDraw
 from .weiqi_board import WeiqiBoard
-from ._graphics_settings import get_settings
+from ._settings import get_settings
 from ._textbox import load_font, make_color_copy
 
 
@@ -19,6 +19,7 @@ _STONE_IMAGE_PATHS = {
 _STONE_IMAGES = {}
 _STAR_POINT_IMAGES = {}
 _scaled_margin = None
+_annotations = None
 
 
 def get_stone_images():
@@ -33,6 +34,15 @@ def get_scaled_margin():
     return _scaled_margin
 
 
+def get_annotation(show_x, show_y):
+    return _annotations[show_x][show_y]
+
+
+def set_annotation(show_x, show_y, function_name):
+    global _annotations
+    _annotations[show_x][show_y] = function_name
+
+
 # loads the image resources if they have not yet been loaded.
 def _load_resources():
     global _STONE_IMAGES, _STAR_POINT_IMAGES
@@ -44,7 +54,7 @@ def _load_resources():
     star_point_image = Image.new("RGBA", (512, 512), (0, 0, 0, 0))
     star_draw = ImageDraw.Draw(star_point_image)
     center = (256, 256)
-    radius = 50 # determines size of the star point
+    radius = 50  # determines size of the star point
     bbox = [
         (center[0] - radius, center[1] - radius),
         (center[0] + radius, center[1] + radius),
@@ -58,11 +68,14 @@ def _load_resources():
     for key, value in _STONE_IMAGE_PATHS.items():
         image_path = os.path.join(res_dir, get_settings().STYLE_NAME, value)
         loaded_images[key] = Image.open(image_path)
-        if key not in ["B", "W",]:
+        if key not in [
+            "B",
+            "W",
+        ]:
             loaded_images[key] = make_color_copy(
                 loaded_images[key], get_settings().MARKER_COLOR
             )
-    
+
     for cell_size in range(
         get_settings().MIN_CELL_SIZE, get_settings().MAX_CELL_SIZE + 1
     ):
@@ -78,11 +91,11 @@ def _load_resources():
         )
 
 
-# returns the weiqi game <Board> object, 
+# returns the weiqi game <Board> object,
 # the cell size, the show size,
 # and the start point on the board (e.g.19x19) where the display begins.
 def setup_board(sgf_path, nodes, commands_lists):
-    global _scaled_margin
+    global _scaled_margin, _annotations
     _load_resources()
 
     # 1) determines the coordinate ranges that every play finds itself in.
@@ -93,13 +106,16 @@ def setup_board(sgf_path, nodes, commands_lists):
     for command_list in commands_lists:
         for command in command_list:
             function_name, parameters = command
-            points = decode_letter_coords(parameters)
+            if function_name == "LB":
+                points, _ = decode_labels(parameters)
+            else:
+                points = decode_letter_coords(parameters)
             for point in points:
                 min_x = min(min_x, point[0])
                 min_y = min(min_y, point[1])
                 max_x = max(max_x, point[0])
                 max_y = max(max_y, point[1])
-    
+
     # 2) determines the size of the board from the single "SZ" command.
     board = None
     setup_commands = commands_lists[0]
@@ -124,8 +140,8 @@ def setup_board(sgf_path, nodes, commands_lists):
     original_img_name = sgf_path[:-4] + ".png"
     if os.path.exists(original_img_name):
         image = Image.open(original_img_name)
-        n_cells_wide = round((image.size[0] - 4) / 23)
-        n_cells_high = round((image.size[1] - 4) / 23)
+        n_cells_wide = int((image.size[0] - 4) / 23)
+        n_cells_high = int((image.size[1] - 4) / 23)
         image.close()
     else:
         n_cells_wide = min(board.get_width(), n_found_cells_wide + 1)
@@ -133,7 +149,7 @@ def setup_board(sgf_path, nodes, commands_lists):
 
     padding_x = (n_cells_wide - n_found_cells_wide) // 2
     padding_y = (n_cells_high - n_found_cells_high) // 2
-    
+
     start_x = min_x - padding_x
     start_y = min_y - padding_y
 
@@ -146,23 +162,27 @@ def setup_board(sgf_path, nodes, commands_lists):
     end_y = start_y + n_cells_high - 1
 
     # 5) the viewport will extend to the board's edge if its close enough.
-    if start_x <= 2:
+    if start_x <= 2 and (n_cells_wide - 1) >= max_x:
         start_x = 0
-        end_x = start_x + n_cells_wide - 1
-    elif end_x >= board.get_width() - 3:
+        end_x = n_cells_wide - 1
+    elif end_x >= board.get_width() - 3 and (board.get_width() - n_cells_wide) <= min_x:
         start_x = board.get_width() - n_cells_wide
         end_x = start_x + n_cells_wide - 1
 
-    if start_y <= 2:
+    if start_y <= 2 and (n_cells_high - 1) >= max_y:
         start_y = 0
-        end_y = start_y + n_cells_high - 1
-    elif end_y >= board.get_height() - 3:
+        end_y = n_cells_high - 1
+    elif (
+        end_y >= board.get_height() - 3 and (board.get_height() - n_cells_high) <= min_x
+    ):
         start_y = board.get_height() - n_cells_high
         end_y = start_y + n_cells_high - 1
 
     # 6) determines how large (in pixels) each cell graphic should be.
     show_width = end_x - start_x + 1
     show_height = end_y - start_y + 1
+
+    _annotations = [[None for _ in range(show_height)] for _ in range(show_width)]
 
     longest_show_dim = max(show_width, show_height)
     longest_image_dim = max(get_settings().MAX_WIDTH, get_settings().MAX_HEIGHT)
@@ -172,19 +192,28 @@ def setup_board(sgf_path, nodes, commands_lists):
     height_no_margin = get_settings().MAX_HEIGHT - _scaled_margin * 2
     cell_size = min(
         [
-            width_no_margin // show_width, 
+            width_no_margin // show_width,
             height_no_margin // show_height,
-            get_settings().MAX_CELL_SIZE
+            get_settings().MAX_CELL_SIZE,
         ]
     )
     cell_size = max(cell_size, get_settings().MIN_CELL_SIZE)
-    start_point = (start_x, start_y,)
+    start_point = (
+        start_x,
+        start_y,
+    )
 
     return (
         board,
         cell_size,
-        (show_width, show_height,),
-        (start_x, start_y,),
+        (
+            show_width,
+            show_height,
+        ),
+        (
+            start_x,
+            start_y,
+        ),
     )
 
 
@@ -192,7 +221,11 @@ def decode_labels(parameters):
     points = []
     strings = []
     for parameter in parameters:
-        results = decode_letter_coords([parameter[:2],])
+        results = decode_letter_coords(
+            [
+                parameter[:2],
+            ]
+        )
         if len(results) == 0:
             continue
         points.append(results[0])
@@ -208,7 +241,12 @@ def decode_letter_coords(parameters):
         x = _letter_to_number(parameter[0])
         y = _letter_to_number(parameter[1])
         if x is not None and y is not None:
-            points.append((x, y,))
+            points.append(
+                (
+                    x,
+                    y,
+                )
+            )
     return points
 
 

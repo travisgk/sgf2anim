@@ -1,6 +1,6 @@
 from PIL import Image, ImageDraw
 from ._graphics_setup import get_star_images, get_scaled_margin
-from ._graphics_settings import get_settings
+from ._settings import get_settings
 
 _draw_cell_size = None
 
@@ -13,9 +13,7 @@ def get_draw_cell_size():
 # the first image includes board lines, while the second one does not.
 def draw_board_image(board, cell_size, show_size, start_pos):
     global _annotations, _draw_cell_size
-    _annotations = [
-        [None for _ in range(show_size[1])] for _ in range(show_size[0])
-    ]
+    _annotations = [[None for _ in range(show_size[1])] for _ in range(show_size[0])]
 
     static_board_image = Image.new(
         "RGBA",
@@ -23,7 +21,12 @@ def draw_board_image(board, cell_size, show_size, start_pos):
             get_scaled_margin() * 2 + cell_size * show_size[0],
             get_scaled_margin() * 2 + cell_size * show_size[1],
         ),
-        (243, 176, 109, 255,)
+        (
+            243,
+            176,
+            109,
+            255,
+        ),
     )
     static_board_no_lines = static_board_image.copy()
     draw = ImageDraw.Draw(static_board_image)
@@ -36,7 +39,7 @@ def draw_board_image(board, cell_size, show_size, start_pos):
         min_y = -10
     else:
         min_y = px_offset
-    
+
     if start_pos[1] + show_size[1] < board.get_height():
         max_y = static_board_image.size[1] + 10
     else:
@@ -54,7 +57,7 @@ def draw_board_image(board, cell_size, show_size, start_pos):
         min_x = -10
     else:
         min_x = px_offset
-    
+
     if start_pos[0] + show_size[0] < board.get_width():
         max_x = static_board_image.size[0] + 10
     else:
@@ -79,14 +82,18 @@ def draw_board_image(board, cell_size, show_size, start_pos):
         )
 
     if board.get_width() % 2 == 1 and board.get_height() % 2 == 1:
-        star_points.add((board.get_width() // 2, board.get_height() // 2,))
+        star_points.add(
+            (
+                board.get_width() // 2,
+                board.get_height() // 2,
+            )
+        )
 
     # 4) determines the cell size used in drawing so that
     #    all cells align in the center with the board's lines (if desired).
     adjusted_size = cell_size
-    if (
-        (line_width % 2 == 0 and cell_size % 2 == 1) 
-        or (line_width % 2 == 1 and cell_size % 2 == 0)
+    if (line_width % 2 == 0 and cell_size % 2 == 1) or (
+        line_width % 2 == 1 and cell_size % 2 == 0
     ):
         adjusted_size -= 1
     centered = get_settings().FORCE_STONES_CENTER
@@ -97,7 +104,16 @@ def draw_board_image(board, cell_size, show_size, start_pos):
 
     # 5) draws star point images.
     star_point_image = get_star_images()[adjusted_size]
-    comp = Image.new("RGBA", static_board_image.size, (0, 0, 0, 0,))
+    comp = Image.new(
+        "RGBA",
+        static_board_image.size,
+        (
+            0,
+            0,
+            0,
+            0,
+        ),
+    )
     cols = set([point[0] for point in star_points])
     rows = set([point[1] for point in star_points])
     for x in range(show_size[0]):
