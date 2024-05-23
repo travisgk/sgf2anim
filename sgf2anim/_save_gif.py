@@ -3,8 +3,6 @@ import imageio.v3 as imageio
 from PIL import Image
 from ._settings import get_settings
 
-from ._profiling import reset_time, get_elapsed_time
-
 
 def save_GIF_to_file(
     save_path,
@@ -14,7 +12,6 @@ def save_GIF_to_file(
     end_freeze_ms=10000,
     number_display_ms=500,
 ):
-    reset_time()  # DEBUG
     n_frames = len(frames)
     extra_frame_ms = max(0, frame_delay_ms - number_display_ms)
 
@@ -50,10 +47,6 @@ def save_GIF_to_file(
 
     durations[0] = start_freeze_ms
     durations[-1] = end_freeze_ms
-    print(f"writing frames took {get_elapsed_time():.2f}.")  # DEBUG
-
-    reset_time()  # DEBUG
     imageio.imwrite(
         save_path, save_frames, duration=durations, loop=0, subrectangles=True
     )
-    print(f"imageio.imwrite took {get_elapsed_time():.2f}.")  # DEBUG

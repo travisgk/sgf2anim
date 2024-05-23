@@ -65,6 +65,10 @@ class WeiqiBoard:
                 return player_num + 1
         return 0
 
+    # this recursive method will select all the points that are orthogonal
+    # to the given point <p>, so long as an orthogonal point
+    # matches the original stone color of <p>. these points are appended
+    # to the given <group_list>.
     def _select_orthoganally(self, p, index, group_list):
         if self._board[index][p[0]][p[1]] == _ONE_HOT_TRUE and p not in group_list:
             group_list.append(p)
@@ -72,6 +76,8 @@ class WeiqiBoard:
             for o in orthos:
                 self._select_orthoganally(o, index, group_list)
 
+    # returns a list of the empty points
+    # which surround the given <GROUP_LIST> of stones.
     def _find_liberties(self, GROUP_LIST):
         liberties = []
         for p in GROUP_LIST:
@@ -145,7 +151,6 @@ class WeiqiBoard:
         n_own_liberties = len(self._find_liberties(own_group))
 
         # checks for repetitions from Ko.
-
         if n_opposing_captured == 1 and len(own_group) == 1:
             hash_num = hash(tuple(self._n_stones))
             if self._prev_boards.get(hash_num) is not None and any(
@@ -178,12 +183,12 @@ class WeiqiBoard:
                 return False, []
 
         if not is_legality_probe:
-            # adds board record.
             if (
                 n_opposing_captured == 1
                 and len(own_group) == 1
                 and n_own_liberties == 1
             ):
+                # adds board record.
                 if not self._prev_boards.get(hash_num):
                     self._prev_boards[hash_num] = []
                 self._prev_boards[hash_num].append(backup_board)

@@ -1,47 +1,59 @@
 import os
-import numpy as np
 import re
+import numpy as np
 from PIL import Image
-from ._settings import get_settings
-from ._graphics_setup import get_scaled_margin, setup_board
-from ._draw_board_image import draw_board_image
-from ._board_commands import (
-    ANNOTATION_FUNC_NAMES,
-    play_setup_moves,
-    run_command,
-    set_move_num,
+from ._commands import set_move_num, play_setup_moves, run_command
+from ._image_resources import (
+    get_board_image,
+    get_show_width,
+    get_show_height,
+    get_cell_size,
+    get_scaled_margin,
+    setup_board,
 )
 from ._save_gif import save_GIF_to_file
+from ._settings import get_settings
 
 
-from ._profiling import reset_time, get_elapsed_time
+_MODIFIERS = ["AB", "AW", "AE", "AR", "CR", "DD", "LB", "LN", "MA", "SL", "SQ", "TR"]
+_ANNOTATION_FUNC_NAMES = [
+    "AR",
+    "C",
+    "CR",
+    "DD",
+    "LB",
+    "LN",
+    "MA",
+    "MN",
+    "SL",
+    "SQ",
+    "TR",
+]
+
+
+def process_senseis_library(directory):
+    return
 
 
 def process_directory(directory):
-    all_files = os.listdir(directory)
-    sgf_file_paths = [
-        os.path.join(directory, file) for file in all_files if file.endswith(".sgf")
+    all_paths = os.listdir(directory)
+    sgf_paths = [
+        os.path.join(directory, path) for path in all_paths if path.endswith(".sgf")
     ]
 
-    for path in sgf_file_paths:
+    for path in sgf_paths:
         print(f"\n\n\n{path}")
         get_settings().set_for_animated_diagram()
-        save_GIF(path, save_as_diagram=False)
-        get_settings().set_for_diagram()
-        save_GIF(path, save_as_diagram=True)
+        save_diagram(path, save_as_static=False)
+        get_settings().set_for_static_diagram()
+        save_diagram(path, save_as_static=True)
 
-    print(f"{len(sgf_file_paths)} sgf files in {directory}")
-    print(sgf_file_paths[:5])
-
+    print(f"{len(sgf_paths)} sgf files in {directory}")
 
 
-
-
-# returns True if saving the GIF was successful.
-def save_GIF(sgf_path, save_path=None, save_as_diagram=False):
-    reset_time()  # DEBUG
-
-    # determines the SGF is usable.
+# returns True if saving the diagram was successful.
+def save_diagram(sgf_path, save_as_static=False):
+    # 1) determines if the SGF is usable.
     if not os.path.exists(sgf_path):
         print(f"could not open {sgf_path}.")
         return
@@ -50,103 +62,60 @@ def save_GIF(sgf_path, save_path=None, save_as_diagram=False):
         content = file.read()
     content = content.replace("\n", "").replace("(", "").replace(")", "")
     content = _remove_comments(content)
+    node_strings = content.split(";")
 
-    nodes = content.split(";")
-
-    if len(nodes) == 0:
-        # file cannot be used.
+    if len(node_strings) == 0:
         return
-
-    if len(nodes[0]) == 0:
-        if len(nodes) == 1:
-            # file cannot be used.
+    if len(node_strings[0]) == 0:
+        if len(node_strings) == 1:
             return
-        nodes = nodes[1:]
+        node_strings = node_strings[1:]
 
-    if len(nodes[0]) == 1:
-        modifiers = [
-            "AB",
-            "AW",
-            "AE",
-            "AR",
-            "CR",
-            "DD",
-            "LB",
-            "LN",
-            "MA",
-            "SL",
-            "SQ",
-            "TR",
-        ]
-        for modifier in modifiers:
-            if modifier in nodes[0]:
+    if len(node_strings[0]) >= 1:
+        for modifier in _MODIFIERS:
+            if modifier in node_strings[0]:
                 break
         else:
-            # file cannot be used.
+            # no commands in the first node.
             return
 
-    commands_lists = [_to_commands(node) for node in nodes]
-
-    if (
-        len(nodes) == 1 
-        or (
-            len(nodes) == 2 
-            and not save_as_diagram 
-            and all(
-                [
-                    (func_name in ANNOTATION_FUNC_NAMES) 
-                    for func_name, _ in commands_lists[1]
-                ]
-            )
+    command_lists = [_to_commands(node_str) for node_str in node_strings]
+    print(f"{len(node_strings)} node strings")
+    if len(node_strings) == 1 or (
+        len(node_strings) == 2
+        and not save_as_static
+        and all(
+            [(func_name in _ANNOTATION_FUNC_NAMES) for func_name, _ in command_lists[1]]
         )
     ):
-        # this doesn't need a GIF.
         print(f"{sgf_path} doesn't need a GIF.")
         return
 
-    # 
-    board, cell_size, show_size, start_point = setup_board(
-        sgf_path, nodes, commands_lists
-    )
+    # 2) sets all the components up.
+    board = setup_board(sgf_path, command_lists)
+    stones_image = _create_change_image()
+    annotations_image = _create_change_image()
+    play_setup_moves(command_lists, stones_image, annotations_image, board)
 
-    board_image, board_image_no_lines = draw_board_image(
-        board, cell_size, show_size, start_point
-    )
+    print(f"board image size: {get_board_image().size}")
+    print(f"stones image size: {stones_image.size}")
+    print(f"annotations image size: {annotations_image.size}")
 
-    image_of_stone_changes = _create_change_image(cell_size, show_size)
-    image_of_annotation_changes = _create_change_image(cell_size, show_size)
+    base_image = Image.alpha_composite(get_board_image(), stones_image)
+    base_image.alpha_composite(annotations_image)
+    # TODO: composite annotated lines image.
 
-    play_setup_moves(
-        commands_lists,
-        image_of_stone_changes,
-        image_of_annotation_changes,
-        board_image,
-        board_image_no_lines,
-        board,
-        cell_size,
-        start_point,
-    )
-
-    base_image = Image.alpha_composite(board_image, image_of_stone_changes)
-    base_image = Image.alpha_composite(base_image, image_of_annotation_changes)
-    # base_image.show()
-
-    if not save_as_diagram:
+    if not save_as_static:
         frames = []
-        frames.append(
-            (
-                base_image,
-                False,
-            )
-        )
-        image_of_changes = _create_change_image(cell_size, show_size)
+        frames.append((base_image, False))
+        stones_image = _create_change_image()
+        annotations_image = _create_change_image()
 
-    for i, node in enumerate(nodes):
-        if i == 0:
-            continue
-        commands = commands_lists[i]
+    # 3) executes the commands contained in every node.
+    for i in range(1, len(node_strings)):
+        commands = command_lists[i]
 
-        # move number command will always be run first.
+        # any move number command will always be run first.
         for j, command in enumerate(commands):
             function_name, parameters = command
             if function_name == "MN":
@@ -160,15 +129,7 @@ def save_GIF(sgf_path, save_path=None, save_as_diagram=False):
         for command in commands:
             function_name, parameters = command
             command_extra_frame, was_pass = run_command(
-                function_name,
-                image_of_stone_changes,
-                image_of_annotation_changes,
-                board_image,
-                board_image_no_lines,
-                parameters,
-                board,
-                cell_size,
-                start_point,
+                function_name, stones_image, annotations_image, board
             )
             if command_extra_frame is not None:
                 extra_frame = command_extra_frame
@@ -178,40 +139,48 @@ def save_GIF(sgf_path, save_path=None, save_as_diagram=False):
         if move_was_pass and get_settings().MAINTAIN_NUMBERS_AT_END:
             continue
 
-        if not save_as_diagram:
-            image_of_stone_changes.alpha_composite(image_of_annotation_changes)
-            frames.append((image_of_stone_changes, False))
-            # image_of_changes.show()
+        if not save_as_static:
+            stones_image.alpha_composite(annotations_image)
+            # TODO: alpha composite the lines annotations image
+            frames.append((stones_image, False))
+
             if extra_frame is not None:
+                # the image of the stone w/o annotations
+                # is added after the frame where the move number is shown
+                # in order to make the move number on the stone disappear.
+                # TODO: alpha composite the lines annotations image
                 frames.append((extra_frame, True))
-            image_of_stone_changes = _create_change_image(cell_size, show_size)
-            image_of_annotation_changes = _create_change_image(cell_size, show_size)
 
-    if save_path is None:
-        save_path = sgf_path[:-4] + (".gif" if not save_as_diagram else "_copy.png")
+            stones_image = _create_change_image()
+            annotations_image = _create_change_image()
 
-    try:
-        if save_as_diagram:
-            image_of_stone_changes.alpha_composite(image_of_annotation_changes)
-            base_image.alpha_composite(image_of_stone_changes)
-            base_image = base_image.convert("RGB")
-            # base_image.save(save_path, format="PNG", compress_level=9)
+    # 4) saves the frame(s) to file.
+    save_path = sgf_path[:-4] + (".gif" if not save_as_static else "_copy.png")
 
-            palette_size = get_settings().DIAGRAM_PALETTE_SIZE
-            compressed_gif = base_image.quantize(
-                colors=palette_size, method=Image.FASTOCTREE
-            )
-            compressed_gif.save(save_path, optimize=True, save_all=True)
-        else:
-            save_GIF_to_file(save_path, frames)
+    if save_as_static:
+        base_image.alpha_composite(stones_image)
+        base_image.alpha_composite(annotations_image)
+        annotations_image.show()
+        # TODO: alpha composite the lines annotations image
 
-    except:
-        print(f"{sgf_path} could not be rendered.")
-        return False
-    print(f"primary function took {get_elapsed_time():.2f}.")  # DEBUG
+        base_image = base_image.convert("RGB")
+        base_image.save(save_path, format="PNG", compress_level=9)
+
+        # palette_size = get_settings().DIAGRAM_PALETTE_SIZE
+        # compressed_image = base_image.quantize(
+        #    colors=palette_size, method=Image.FASTOCTREE
+        # )
+        # compressed_gif.save(save_path, optimize=True, save_all=True)
+    else:
+        save_GIF_to_file(save_path, frames)
+    # except:
+    #    print(f"{sgf_path} could not be rendered.")
+    #    return False
+
     return True
 
 
+# returns the given string with all comment commands removed.
 def _remove_comments(content):
     pattern = r'GN\[|C\["?'
     while True:
@@ -233,6 +202,8 @@ def _remove_comments(content):
     return content
 
 
+# returns a string broken down
+# into strings of commands tuples (function name + param).
 def _to_commands(node_str):
     commands = []
     while True:
@@ -265,7 +236,8 @@ def _to_commands(node_str):
     return commands
 
 
-def _create_change_image(cell_size, show_size):
-    w = get_scaled_margin() * 2 + cell_size * show_size[0]
-    h = get_scaled_margin() * 2 + cell_size * show_size[1]
+# creates a clear buffer image that will be alpha composited on top of the frame.
+def _create_change_image():
+    w = get_scaled_margin() * 2 + get_cell_size() * get_show_width()
+    h = get_scaled_margin() * 2 + get_cell_size() * get_show_height()
     return Image.new("RGBA", (w, h), (0, 0, 0, 0))
