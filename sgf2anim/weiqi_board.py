@@ -104,7 +104,7 @@ class WeiqiBoard:
                 for index in range(self._N_PLAYERS)
             ]
         ):
-            print("illegal: stone already exists there")  # DEBUG
+            print("illegal: stone already exists there")
             return False, []
 
         backup_board = copy.deepcopy(self._board)

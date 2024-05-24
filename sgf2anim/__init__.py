@@ -2,7 +2,13 @@ import os
 import re
 import numpy as np
 from PIL import Image
-from ._commands import set_move_num, play_setup_moves, run_command
+from ._commands import (
+    get_has_used_line_annotations,
+    get_line_annotations_image,
+    set_move_num,
+    play_setup_moves,
+    run_command,
+)
 from ._image_resources import (
     get_board_image,
     get_show_width,
@@ -80,7 +86,6 @@ def save_diagram(sgf_path, save_as_static=False):
             return
 
     command_lists = [_to_commands(node_str) for node_str in node_strings]
-    print(f"{len(node_strings)} node strings")
     if len(node_strings) == 1 or (
         len(node_strings) == 2
         and not save_as_static
@@ -97,13 +102,10 @@ def save_diagram(sgf_path, save_as_static=False):
     annotations_image = _create_change_image()
     play_setup_moves(command_lists, stones_image, annotations_image, board)
 
-    print(f"board image size: {get_board_image().size}")
-    print(f"stones image size: {stones_image.size}")
-    print(f"annotations image size: {annotations_image.size}")
-
     base_image = Image.alpha_composite(get_board_image(), stones_image)
     base_image.alpha_composite(annotations_image)
-    # TODO: composite annotated lines image.
+    if get_has_used_line_annotations():
+        base_image.alpha_composite(get_line_annotations_image())
 
     if not save_as_static:
         frames = []
@@ -127,9 +129,8 @@ def save_diagram(sgf_path, save_as_static=False):
         extra_frame = None
         move_was_pass = False
         for command in commands:
-            function_name, parameters = command
             command_extra_frame, was_pass = run_command(
-                function_name, stones_image, annotations_image, board
+                command, stones_image, annotations_image, board
             )
             if command_extra_frame is not None:
                 extra_frame = command_extra_frame
@@ -141,14 +142,16 @@ def save_diagram(sgf_path, save_as_static=False):
 
         if not save_as_static:
             stones_image.alpha_composite(annotations_image)
-            # TODO: alpha composite the lines annotations image
+            if get_has_used_line_annotations():
+                stones_image.alpha_composite(get_line_annotations_image())
             frames.append((stones_image, False))
 
             if extra_frame is not None:
                 # the image of the stone w/o annotations
                 # is added after the frame where the move number is shown
                 # in order to make the move number on the stone disappear.
-                # TODO: alpha composite the lines annotations image
+                if get_has_used_line_annotations():
+                    extra_frame.alpha_composite(get_line_annotations_image())
                 frames.append((extra_frame, True))
 
             stones_image = _create_change_image()
@@ -157,25 +160,26 @@ def save_diagram(sgf_path, save_as_static=False):
     # 4) saves the frame(s) to file.
     save_path = sgf_path[:-4] + (".gif" if not save_as_static else "_copy.png")
 
-    if save_as_static:
-        base_image.alpha_composite(stones_image)
-        base_image.alpha_composite(annotations_image)
-        annotations_image.show()
-        # TODO: alpha composite the lines annotations image
+    try:
+        if save_as_static:
+            base_image.alpha_composite(stones_image)
+            base_image.alpha_composite(annotations_image)
+            if get_has_used_line_annotations():
+                base_image.alpha_composite(get_line_annotations_image())
 
-        base_image = base_image.convert("RGB")
-        base_image.save(save_path, format="PNG", compress_level=9)
+            base_image = base_image.convert("RGB")
+            base_image.save(save_path, format="PNG", compress_level=9)
 
-        # palette_size = get_settings().DIAGRAM_PALETTE_SIZE
-        # compressed_image = base_image.quantize(
-        #    colors=palette_size, method=Image.FASTOCTREE
-        # )
-        # compressed_gif.save(save_path, optimize=True, save_all=True)
-    else:
-        save_GIF_to_file(save_path, frames)
-    # except:
-    #    print(f"{sgf_path} could not be rendered.")
-    #    return False
+            # palette_size = get_settings().DIAGRAM_PALETTE_SIZE
+            # compressed_image = base_image.quantize(
+            #    colors=palette_size, method=Image.FASTOCTREE
+            # )
+            # compressed_gif.save(save_path, optimize=True, save_all=True)
+        else:
+            save_GIF_to_file(save_path, frames)
+    except:
+        print(f"{sgf_path} could not be rendered.")
+        return False
 
     return True
 

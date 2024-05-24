@@ -20,7 +20,7 @@ class Settings:
         # the settings for styling.
         self.STYLE_NAME = "main"
         self.LINE_COLOR = (63, 39, 32)
-        self.LINE_THICKNESS = 1.0
+        self.LINE_THICKNESS = 1.5
         self.MARKER_COLOR = (29, 164, 98)
         self.LABEL_COLOR = (0, 0, 0)
         self.PLACEMENT_MARKER_COLOR = (0, 138, 225)

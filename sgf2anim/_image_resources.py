@@ -210,7 +210,7 @@ def setup_board(sgf_path, commands_lists):
     # 6) determines the size of the image margin.
     longest_show_dim = max(_show_width, _show_height)
     longest_image_dim = max(get_settings().MAX_WIDTH, get_settings().MAX_HEIGHT)
-    _scaled_margin = round(longest_image_dim / longest_show_dim * 0.0853)
+    _scaled_margin = round(longest_image_dim / longest_show_dim * (2 / 23))
 
     # 7) determines how large (in pixels) each cell graphic should be.
     width_no_margin = get_settings().MAX_WIDTH - _scaled_margin * 2
@@ -225,12 +225,13 @@ def setup_board(sgf_path, commands_lists):
     _cell_size = max(_cell_size, get_settings().MIN_CELL_SIZE)
 
     # 8) determines the sizes (in pixels) of output components.
-    _board_line_width = int(get_settings().LINE_THICKNESS + _cell_size * 0.03)
-    if get_settings().FORCE_STONES_CENTER and (
-        (_board_line_width % 2 == 0 and cell_size % 2 == 1)
-        or (_board_line_width % 2 == 1 and cell_size % 2 == 0)
-    ):
-        _draw_cell_size = _cell_size - 1
+    thickness = get_settings().LINE_THICKNESS
+    _board_line_width = max(1, int(thickness * _cell_size * (1 / 32)))
+    if get_settings().FORCE_STONES_CENTER:
+        if _board_line_width % 2 == 1:
+            _draw_cell_size = _cell_size - (1 - (_cell_size % 2))
+        else:
+            _draw_cell_size = _cell_size - (_cell_size % 2)
     else:
         _draw_cell_size = _cell_size
 
@@ -252,7 +253,6 @@ def _draw_board_images(board):
 
     draw = ImageDraw.Draw(_BOARD_IMAGE)
     px_offset = _scaled_margin + _cell_size // 2
-    line_width = int(get_settings().LINE_THICKNESS + _cell_size * 0.03)
     line_color = get_settings().LINE_COLOR
 
     # draws the vertical lines.
@@ -265,7 +265,7 @@ def _draw_board_images(board):
         pixel_x = x * _cell_size + px_offset
         start = (pixel_x, min_y)
         end = (pixel_x, max_y)
-        draw.line([start, end], fill=line_color, width=line_width)
+        draw.line([start, end], fill=line_color, width=_board_line_width)
 
     # draws the horizontal lines.
     min_x = -10 if _start_x > 0 else px_offset
@@ -277,7 +277,7 @@ def _draw_board_images(board):
         pixel_y = y * _cell_size + px_offset
         start = (min_x, pixel_y)
         end = (max_x, pixel_y)
-        draw.line([start, end], fill=line_color, width=line_width)
+        draw.line([start, end], fill=line_color, width=_board_line_width)
 
     # determines the positions of star points on the board.
     star_points = set()
@@ -291,26 +291,47 @@ def _draw_board_images(board):
             ]
         )
 
+    if board.get_width() > 13 and board.get_width() % 2 == 1:
+        star_points.update(
+            [
+                (board.get_width() // 2, 3),
+                (board.get_width() // 2, board.get_height() - 4),
+            ]
+        )
+
+    if board.get_height() > 13 and board.get_height() % 2 == 1:
+        star_points.update(
+            [
+                (3, board.get_height() // 2),
+                (board.get_width() - 4, board.get_height() // 2),
+            ]
+        )
+
     if board.get_width() % 2 == 1 and board.get_height() % 2 == 1:
         star_points.add((board.get_width() // 2, board.get_height() // 2))
 
     if len(star_points) == 0:
         return
 
-    show_cols = set()
-    show_rows = set()
-    for point in star_points:
-        if point[0] - _start_x < _show_width:
-            show_cols.add(point[0] - _start_x)
-        if point[1] - _start_y < _show_height:
-            show_rows.add(point[1] - _start_y)
+    # draws the star points onto the board image.
+    diff = 1 - (_board_line_width % 2)
 
-    # draws the star point images.
-    star_point_graphic = _STAR_POINT_IMAGES[_draw_cell_size]
+    if _board_line_width % 2 == 1:
+        star_point_size = _cell_size + (1 - (_cell_size % 2))
+    else:
+        star_point_size = _cell_size + (_cell_size % 2)
+
+    star_point_graphic = _STAR_POINT_IMAGES[star_point_size]
     comp = Image.new("RGBA", image_size, (0, 0, 0, 0))
-    for show_x in show_rows:
-        for show_y in show_cols:
-            draw_x = int(_scaled_margin + _cell_size * (show_x + 0.5) + line_width / 2)
-            draw_y = int(_scaled_margin + _cell_size * (show_y + 0.5) + line_width / 2)
-            comp.paste(star_point_graphic, (draw_x, draw_y))
+    # print(f"board_line_width: {_board_line_width}")
+    # print(f"cell_size: {_cell_size}")
+    # print(f"_draw_cell_size: {_draw_cell_size}")
+    # print(f"diff: {diff}")
+    for point in star_points:
+        show_x = point[0] - _start_x
+        show_y = point[1] - _start_y
+        draw_x = _scaled_margin + show_x * _cell_size
+        draw_y = _scaled_margin + show_y * _cell_size
+        comp.paste(star_point_graphic, (draw_x, draw_y))
+
     _BOARD_IMAGE.alpha_composite(comp)

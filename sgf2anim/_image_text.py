@@ -110,7 +110,7 @@ def create_cell_text(cell_size, text, color, scale):
 # returns the resulting image of rendering text
 # and cropping it by its bounding box.
 def _render_cropped_text(cell_size, text, color):
-    PADDING_BOTTOM_PERCENT = 0.03
+    PADDING_BOTTOM_PERCENT = 0.05
     LEFTWARD_ONE_CLIP = int(cell_size * 0.06)
 
     # draws the text onto a blank transparent image.

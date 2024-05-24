@@ -34,7 +34,6 @@ def find_board_points_with_annotation(function_name):
 # that correspond to the given <board_points>.
 def mass_clear(image, board_points):
     global _annotations
-    _init_annotations()
     for point in board_points:
         show_x = point[0] - get_board_start_point()[0]
         show_y = point[1] - get_board_start_point()[1]
@@ -44,7 +43,6 @@ def mass_clear(image, board_points):
 
 def mass_paste_stone(stones_image, paste_graphic, board_points):
     global _annotations
-    _init_annotations()
     comp = Image.new("RGBA", stones_image.size, (0, 0, 0, 0))
     for point in board_points:
         show_x = point[0] - get_board_start_point()[0]
@@ -61,7 +59,6 @@ def mass_paste_annotation(
     function_name, annotations_image, paste_graphic, board_points, board
 ):
     global _annotations
-    _init_annotations()
     has_new_annotations = False
 
     comp = Image.new("RGBA", annotations_image.size, (0, 0, 0, 0))
@@ -93,6 +90,7 @@ def mass_paste_annotation(
             bg_cell = get_board_image_no_lines().crop(bbox)
             label_bg = _create_label_background(bg_cell)
             label_comp = Image.new("RGBA", annotations_image.size, (0, 0, 0, 0))
+            label_comp.paste(label_bg, (draw_x + diff, draw_y + diff))
             annotations_image.alpha_composite(label_comp)
         comp.paste(paste_graphic, (draw_x + diff, draw_y + diff))
 
@@ -103,7 +101,7 @@ def mass_paste_annotation(
 def mass_draw_lines(image, lines):
     draw = ImageDraw.Draw(image)
     line_color = get_settings().ANNOTATE_LINE_COLOR
-    line_width = int(get_settings().ANNOTATE_LINE_THICKNESS + cell_size * 0.03)
+    line_width = int(get_settings().ANNOTATE_LINE_THICKNESS + get_cell_size() * 0.03)
 
     draw_lines = []
     for begin, end in lines:
@@ -178,10 +176,8 @@ def _get_cell_crop(show_x, show_y):
     )
 
 
-def _init_annotations():
+def reset_annotations():
     global _annotations
-    if _annotations is not None:
-        return
     _annotations = [
         [None for _ in range(get_show_height())] for _ in range(get_show_width())
     ]
