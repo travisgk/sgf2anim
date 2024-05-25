@@ -225,7 +225,19 @@ def save_diagram(
             if was_pass:
                 move_was_pass = True
 
-        if move_was_pass and get_settings().MAINTAIN_NUMBERS_AT_END:
+        # frame is dropped if set to do so with a passing move
+        # or if the node consisted only of annotative commands.
+        if (
+            (move_was_pass and get_settings().MAINTAIN_NUMBERS_AT_END)
+            or (
+                all(
+                    [
+                        (func_name in _ANNOTATION_FUNC_NAMES)
+                        for func_name, _ in commands
+                    ]
+                )
+            )
+        ):
             continue
 
         if not save_as_static:

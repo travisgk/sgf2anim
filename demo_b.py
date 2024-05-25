@@ -32,7 +32,7 @@ def main():
 
         # saves a static diagram for the .sgf file.
         sgf2anim.get_settings().set_for_static_diagram()
-        sgf2anim.save_diagram(sgf_path, save_as_static=True)
+        sgf2anim.save_diagram(sgf_path, save_as_static=True, path_addon="_output")
 
     elapsed = time.time() - start_time
     print(f"that took {elapsed:>.2f} seconds.")

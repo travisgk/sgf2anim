@@ -37,10 +37,10 @@ def process_files(sgf_paths, path_addon):
         sgf2anim.save_diagram(
             sgf_path,
             save_as_static=False,
-            frame_delay_ms=1000,
-            start_freeze_ms=2000,
-            end_freeze_ms=10000,
-            number_display_ms=600,
+            frame_delay_ms=1600,
+            start_freeze_ms=3000,
+            end_freeze_ms=9000,
+            number_display_ms=900,
             path_addon=path_addon,
         )
 
