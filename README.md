@@ -78,18 +78,45 @@ If an SGF file doesn't contain any played moves, then an animated diagram will n
 # Styling Settings
 ```sgf2anim``` contains ```_settings.py```, which defines a ```Settings``` object whose member attributes determine how diagrams will be rendered. ```sgf2anim.get_settings()``` can be used to retrieve the ```Settings``` object and modify its properties before running rendering processes.
 
+for the resolution of the output images:
 - ```MAX_WIDTH``` provides the maximum width of an output diagram image.
 - ```MAX_HEIGHT``` provides the maximum height of an output diagram image.
 - ```IMAGE_MARGIN``` provides the relative margin around the displayed stones.
-- 
-<br>
-
 - ```MIN_CELL_SIZE``` provides the smallest size of a graphic that can be used.
 - ```MAX_CELL_SIZE``` provides the largest size of a graphic that can be used.
 
 <br>
 
+for the appearance of move numbers on stones:
 - ```SHOW_STONE_NUMBERS```, if True, will display a move number/placement marker on the last placed stone.
 - ```MAINTAIN_STONE_NUMBERS```, if True, will permanently keep the move number/placement marker on the last placed stone.
 - ```MAINTAIN_NUMBERS_AT_END```, if True, will permanently keep the move number/placement marker on the final placed stone.
 - ```MARKER_INSTEAD_OF_NUMBERS```, if True, will show a placement marker graphic on the stone instead of the move number.
+- ```LABEL_TEXT_SCALE``` is the scale of displayed label on an intersection.
+- ```NUMBER_TEXT_SCALE``` is the scale of displayed move number on a stone.
+- ```DIGIT_TEXT_SCALE_FACTOR``` is added to the ```NUMBER_TEXT_SCALE``` for every digit beyond the first digit.
+- ```LEFTWARD_ONE_CLIP_FACTOR``` is the percentage of the move number text image that will be clipped off the left side if the left-most digit is "1" and the move number is not a single digit. This is for accomodating different fonts.
+- ```CENTER_LABELS_VERTICALLY```, if True, will vertically center letter labels on their intersections.
+- ```LETTERS_PADDING_BOTTOM_PERCENT``` is the percentage of the label text image's height that will be added to the bottom of the image for ideal alignment.
+- ```NUMBERS_PADDING_BOTTOM_PERCENT``` is the percentage of the move number text image's height that will be added to the bottom of the image for ideal alignment.
+
+<br>
+
+for the color and line styling:
+- ```STYLE_NAME``` is the name of the directory contained in ```sgf2anim/_res``` whose graphics will be loaded.
+- ```LINE_COLOR``` is the RGB for the Go board's lines.
+- ```LINE_THICKNESS``` is the relative thickness of the Go board's lines.
+- ```MARKER_COLOR``` is the RGB for the annotation shapes.
+- ```LABEL_COLOR``` is the RGB for the letter label annotations displayed on intersections.
+- ```PLACEMENT_MARKER_COLOR``` is the RGB for the stone placement marker.
+- ```NUMBER_COLOR_FOR_BLACK``` is the RGB for the move number text appearing on a black stone.
+- ```NUMBER_COLOR_FOR_WHITE``` is the RGB for the move number text appearing on a white stone.
+- ```ANNOTATE_LINE_COLOR``` is the RGB used for annotative lines.
+- ```ANNOTATE_LINE_THICKNESS``` is the relative thickness of annotative lines.
+
+<br>
+
+for other rendering options:
+- ```DISPLAY_PADDING``` specifies how many empty intersections should surround the displayed stones.
+- ```FORCE_STONES_CENTER```, if True, will change the stone graphic size on a case-by-case basis in order to make them perfectly centered with the Go board's lines.
+- ```RENDER_CAPTURES```, if True, will clear captured stones from the diagram.
