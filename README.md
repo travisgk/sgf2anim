@@ -18,7 +18,7 @@ pip install pillow imageio
 <br>
 
 # Creating a Diagram
-## Static
+### Static
 ![](https://github.com/travisgk/sgf2anim/blob/main/_demo_res/demo_b_res/surrounded_output.png)
 ```
 import sgf2anim
@@ -30,7 +30,7 @@ This will create a static diagram and save it as "my-sgf_output.png" in the same
 
 <br>
 
-## Animated
+### Animated
 ![](https://github.com/travisgk/sgf2anim/blob/main/_demo_res/demo_a_res/capturing-race_output.gif)
 ```
 import sgf2anim
@@ -55,7 +55,7 @@ sgf2anim.save_diagram(
 
 <br>
 
-## Multiple Files at Once
+### Multiple Files at Once
 ```
 import sgf2anim
 sgf_dir = "directory"
@@ -77,7 +77,7 @@ If an SGF file doesn't contain any played moves, then an animated diagram will n
 
 # Styling
 
-## Default Profiles
+### Default Profiles
 ![](https://github.com/travisgk/sgf2anim/blob/main/_demo_res/demo_a_res/fight_output.png)
 ```sgf2anim.get_settings().set_for_static_diagram()``` will change the settings to render all the move numbers and not remove captured stones from the diagram.
 
@@ -88,7 +88,7 @@ If an SGF file doesn't contain any played moves, then an animated diagram will n
 
 <br>
 
-## Custom Theme
+### Custom Theme
 ![](https://github.com/travisgk/sgf2anim/blob/main/_demo_res/demo_c_res/false-eyes_frost.png)
 ```
 import sgf2anim
