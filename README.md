@@ -1,7 +1,7 @@
 ![](https://github.com/travisgk/sgf2anim/blob/main/_demo_res/demo_c_res/false-eyes_frost.gif)
 
 # sgf2anim
-A Python script that can turn an .sgf file for the game of Go/Baduk/Weiqi into a diagram, static or animated.
+A Python script that can turn an .sgf file for the game of Go/Baduk/Weiqi into a diagram, either static or animated.
 
 <br>
 <br>
