@@ -1,10 +1,9 @@
 class Settings:
     def __init__(self):
         # the settings for image resolution.
-        self.MAX_WIDTH = 600
-        self.MAX_HEIGHT = 600
+        self.MAX_WIDTH = 1000
+        self.MAX_HEIGHT = 1000
         self.IMAGE_MARGIN = 2
-
         self.MIN_CELL_SIZE = 4
         self.MAX_CELL_SIZE = 256
 
@@ -24,7 +23,7 @@ class Settings:
         # the settings for styling.
         self.STYLE_NAME = "main"
         self.LINE_COLOR = (63, 39, 32)
-        self.LINE_THICKNESS = 1.5
+        self.LINE_THICKNESS = 1.1
         self.MARKER_COLOR = (29, 164, 98)
         self.LABEL_COLOR = (0, 0, 0)
         self.PLACEMENT_MARKER_COLOR = (0, 138, 225)

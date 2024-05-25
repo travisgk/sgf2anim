@@ -17,7 +17,6 @@ from ._image_resources import (
     get_show_height,
     get_cell_size,
     get_scaled_margin,
-    force_reload_style,
     setup_board,
 )
 from ._image_text import create_cell_text
@@ -133,11 +132,6 @@ def find_all_SGF_paths(directory):
     return sgf_paths
 
 
-def change_style(style_name):
-    get_settings().STYLE_NAME = style_name
-    force_reload_style()
-
-
 # returns True if saving the diagram was successful.
 # <save_as_static> indicates if it's animated or not.
 # <frame_delay_ms> is the duration of each frame appears in the GIF.
@@ -227,16 +221,8 @@ def save_diagram(
 
         # frame is dropped if set to do so with a passing move
         # or if the node consisted only of annotative commands.
-        if (
-            (move_was_pass and get_settings().MAINTAIN_NUMBERS_AT_END)
-            or (
-                all(
-                    [
-                        (func_name in _ANNOTATION_FUNC_NAMES)
-                        for func_name, _ in commands
-                    ]
-                )
-            )
+        if (move_was_pass and get_settings().MAINTAIN_NUMBERS_AT_END) or (
+            all([(func_name in _ANNOTATION_FUNC_NAMES) for func_name, _ in commands])
         ):
             continue
 

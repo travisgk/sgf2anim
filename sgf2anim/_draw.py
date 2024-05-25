@@ -3,7 +3,6 @@ from .weiqi_board import BLACK_NUM, WHITE_NUM
 from ._settings import get_settings
 from ._image_resources import (
     get_stone_images,
-    get_star_images,
     get_board_image,
     get_board_image_no_lines,
     get_board_start_point,

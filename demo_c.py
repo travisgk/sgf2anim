@@ -14,12 +14,13 @@ def main():
     process_files(sgf_paths, "_main")
 
     # sets up the "frost" style and creates diagrams with it.
+    sgf2anim.get_settings().STYLE_NAME = "frost"
     sgf2anim.get_settings().DIGIT_TEXT_SCALE_FACTOR = 0.32
     sgf2anim.get_settings().LEFTWARD_ONE_CLIP_FACTOR = -0.05
     sgf2anim.get_settings().LINE_COLOR = (75, 107, 155)
     sgf2anim.get_settings().LINE_THICKNESS = 1.2
     sgf2anim.get_settings().MARKER_COLOR = (46, 84, 105)
-    sgf2anim.change_style("frost")
+
     process_files(sgf_paths, "_frost")
 
     elapsed = time.time() - start_time

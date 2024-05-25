@@ -13,8 +13,6 @@ from ._draw import (
 from ._image_text import create_cell_text
 from ._image_resources import (
     get_stone_images,
-    get_board_image,
-    get_board_image_no_lines,
     get_draw_cell_size,
 )
 from ._settings import get_settings
