@@ -1,7 +1,7 @@
 ![](https://github.com/travisgk/sgf2anim/blob/main/_demo_res/demo_c_res/false-eyes_frost.gif)
 
 # sgf2anim
-A Python script that can turn an .sgf file for the game of Go into a diagram, static or animated.
+A Python script that can turn an .sgf file for the game of Go/Baduk/Weiqi into a diagram, static or animated.
 
 <br>
 <br>
@@ -75,7 +75,40 @@ If an SGF file doesn't contain any played moves, then an animated diagram will n
 <br>
 <br>
 
-# Styling Settings
+# Styling
+
+## Default Profiles
+![](https://github.com/travisgk/sgf2anim/blob/main/_demo_res/demo_a_res/fight_output.png)
+```sgf2anim.get_settings().set_for_static_diagram()``` will change the settings to render all the move numbers and not remove captured stones from the diagram.
+
+<br>
+
+![](https://github.com/travisgk/sgf2anim/blob/main/_demo_res/demo_a_res/fight_output.gif)
+```sgf2anim.get_settings().set_for_animated_diagram()``` will change the settings to render each placed stone with a temporary placement marker. Captures will be removed.
+
+<br>
+
+## Custom Theme
+![](https://github.com/travisgk/sgf2anim/blob/main/_demo_res/demo_c_res/false-eyes_frost.png)
+```
+import sgf2anim
+
+# defines the graphics directory under sgf2anim/_res to use and the styling properties.
+sgf2anim.get_settings().STYLE_NAME = "frost"
+sgf2anim.get_settings().DIGIT_TEXT_SCALE_FACTOR = 0.32
+sgf2anim.get_settings().LEFTWARD_ONE_CLIP_FACTOR = -0.05
+sgf2anim.get_settings().LINE_COLOR = (75, 107, 155)
+sgf2anim.get_settings().LINE_THICKNESS = 1.2
+sgf2anim.get_settings().MARKER_COLOR = (46, 84, 105)
+
+sgf_path = "false-eyes"
+sgf2anim.save_diagram(sgf_path, save_as_static=True, path_addon="_frost")
+```
+
+<br>
+
+## Settings
+
 ```sgf2anim``` contains ```_settings.py```, which defines a ```Settings``` object whose member attributes determine how diagrams will be rendered. ```sgf2anim.get_settings()``` can be used to retrieve the ```Settings``` object and modify its properties before running rendering processes.
 
 for the resolution of the output images:
