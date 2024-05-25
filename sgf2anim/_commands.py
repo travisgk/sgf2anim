@@ -114,11 +114,12 @@ def run_command(command, stones_image, annotations_image, board):
                 n_digits = 1 if use_marker else len(move_num_str)
                 color_for_black = get_settings().NUMBER_COLOR_FOR_BLACK
                 color_for_white = get_settings().NUMBER_COLOR_FOR_WHITE
+                factor = get_settings().DIGIT_TEXT_SCALE_FACTOR
                 paste_graphic = create_cell_text(
                     get_draw_cell_size(),
                     move_num_str,
                     color_for_black if function_name == "B" else color_for_white,
-                    get_settings().NUMBER_TEXT_SCALE + (n_digits - 1) * 0.12,
+                    get_settings().NUMBER_TEXT_SCALE + (n_digits - 1) * factor,
                 )
 
             mass_paste_annotation(

@@ -18,6 +18,7 @@ _STONE_IMAGE_PATHS = {
 }
 _STONE_IMAGES = {}
 _STAR_POINT_IMAGES = {}
+_BOARD_TEXTURE = None
 _BOARD_IMAGE = None
 _BOARD_IMAGE_NO_LINES = None
 
@@ -76,10 +77,16 @@ def get_draw_cell_size():
     return _draw_cell_size
 
 
-def _load_images():
-    global _STONE_IMAGES, _STAR_POINT_IMAGES
-    if len(_STONE_IMAGES) > 0:
+def _load_images(force_reload=False):
+    global _STONE_IMAGES, _STAR_POINT_IMAGES, _BOARD_TEXTURE
+    if len(_STONE_IMAGES) > 0 and not force_reload:
         return
+
+    print(
+        f"\nloading the \"{get_settings().STYLE_NAME}\" style resources... ",
+        end="",
+        flush=True,
+    )
 
     load_font(get_settings().STYLE_NAME)
 
@@ -93,6 +100,8 @@ def _load_images():
     # loads the image resources from file.
     current_dir = os.path.dirname(os.path.abspath(__file__))
     load_dir = os.path.join(current_dir, "_res", get_settings().STYLE_NAME)
+    _BOARD_TEXTURE = Image.open(os.path.join(load_dir, "board.png"))
+
     loaded_images = {}
     for key, value in _STONE_IMAGE_PATHS.items():
         path = os.path.join(load_dir, value)
@@ -117,6 +126,11 @@ def _load_images():
         _STAR_POINT_IMAGES[cell_size] = star_point_image.resize(
             (cell_size, cell_size), resample=Image.LANCZOS
         )
+    print("done.")
+
+
+def force_reload_style():
+    _load_images(force_reload=True)
 
 
 def setup_board(sgf_path, commands_lists):
@@ -166,43 +180,81 @@ def setup_board(sgf_path, commands_lists):
     n_found_cells_high = max_y - min_y + 1
 
     original_img_name = sgf_path[:-4] + ".png"
-    if os.path.exists(original_img_name):
+    if get_settings().DOING_SENSEIS_FORMAT and os.path.exists(original_img_name):
         # determines viewport size from a pre-existing accompanying image.
         image = Image.open(original_img_name)
         n_cells_wide = int((image.size[0] - 4) / 23)
         n_cells_high = int((image.size[1] - 4) / 23)
         image.close()
-    else:
-        n_cells_wide = min(board.get_width(), n_found_cells_wide + 1)
-        n_cells_high = min(board.get_height(), n_found_cells_high + 1)
+        padding_x = (n_cells_wide - n_found_cells_wide) // 2
+        padding_y = (n_cells_high - n_found_cells_high) // 2
+        _start_x = min_x - padding_x
+        _start_y = min_y - padding_y
 
-    padding_x = (n_cells_wide - n_found_cells_wide) // 2
-    padding_y = (n_cells_high - n_found_cells_high) // 2
-    _start_x = min_x - padding_x
-    _start_y = min_y - padding_y
-
-    # 4) ensures that the viewport stays within the board.
-    _start_x = max(_start_x, 0)
-    _start_x = min(_start_x, board.get_width() - n_cells_wide)
-    _start_y = max(_start_y, 0)
-    _start_y = min(_start_y, board.get_height() - n_cells_high)
-    end_x = _start_x + n_cells_wide - 1
-    end_y = _start_y + n_cells_high - 1
-
-    # 5) the viewport will be extended to the board's edge if it's close enough.
-    if _start_x <= 2 and (n_cells_wide - 1) >= max_x:
-        _start_x = 0
-        end_x = n_cells_wide - 1
-    elif end_x >= board.get_width() - 3 and board.get_width() - n_cells_wide <= min_x:
-        _start_x = board.get_width() - n_cells_wide
+        _start_x = max(_start_x, 0)
+        _start_x = min(_start_x, board.get_width() - n_cells_wide)
+        _start_y = max(_start_y, 0)
+        _start_y = min(_start_y, board.get_height() - n_cells_high)
         end_x = _start_x + n_cells_wide - 1
-
-    if _start_y <= 2 and (n_cells_high - 1) >= max_y:
-        _start_y = 0
-        end_y = n_cells_high - 1
-    elif end_y >= board.get_height() - 3 and board.get_height() - n_cells_high <= min_x:
-        _start_y = board.get_height() - n_cells_high
         end_y = _start_y + n_cells_high - 1
+
+        # viewport will be extended to the edge if close enough.
+        if _start_x <= 2 and (n_cells_wide - 1) >= max_x:
+            _start_x = 0
+            end_x = n_cells_wide - 1
+        elif (
+            end_x >= board.get_width() - 3 and board.get_width() - n_cells_wide <= min_x
+        ):
+            _start_x = board.get_width() - n_cells_wide
+            end_x = _start_x + n_cells_wide - 1
+
+        if _start_y <= 2 and (n_cells_high - 1) >= max_y:
+            _start_y = 0
+            end_y = n_cells_high - 1
+        elif (
+            end_y >= board.get_height() - 3
+            and board.get_height() - n_cells_high <= min_x
+        ):
+            _start_y = board.get_height() - n_cells_high
+            end_y = _start_y + n_cells_high - 1
+
+    else:
+        # viewport will go around all activated cells and add padding.
+        padding_x = get_settings().DISPLAY_PADDING
+        padding_y = get_settings().DISPLAY_PADDING
+        _start_x = min_x - padding_x
+        _start_y = min_y - padding_y
+        end_x = max_x + padding_x
+        end_y = max_y + padding_y
+
+        _start_x = max(_start_x, 0)
+        _start_x = min(_start_x, board.get_width() - 1)
+        _start_y = max(_start_y, 0)
+        _start_y = min(_start_y, board.get_height() - 1)
+        end_x = max(end_x, 0)
+        end_x = min(end_x, board.get_width() - 1)
+        end_y = max(end_y, 0)
+        end_y = min(end_y, board.get_height() - 1)
+
+        n_cells_wide = (end_x - _start_x) + 1
+        n_cells_high = (end_y - _start_y) + 1
+        n_cells_wide = min(board.get_width(), n_cells_wide)
+        n_cells_high = min(board.get_height(), n_cells_high)
+
+        # viewport will be extended to the edge if close enough.
+        if _start_x <= 2 and n_cells_wide >= max_x:
+            _start_x = 0
+        elif (
+            end_x >= board.get_width() - 3
+        ):  # and board.get_width() - n_cells_wide < min_x:
+            end_x = board.get_width() - 1
+
+        if _start_y <= 2 and n_cells_high >= max_y:
+            _start_y = 0
+        elif (
+            end_y >= board.get_height() - 3
+        ):  # and board.get_height() - n_cells_high < min_y:
+            end_y = board.get_height() - 1
 
     _show_width = end_x - _start_x + 1
     _show_height = end_y - _start_y + 1
@@ -210,7 +262,9 @@ def setup_board(sgf_path, commands_lists):
     # 6) determines the size of the image margin.
     longest_show_dim = max(_show_width, _show_height)
     longest_image_dim = max(get_settings().MAX_WIDTH, get_settings().MAX_HEIGHT)
-    _scaled_margin = round(longest_image_dim / longest_show_dim * (2 / 23))
+    _scaled_margin = round(
+        longest_image_dim / longest_show_dim * (get_settings().IMAGE_MARGIN / 23)
+    )
 
     # 7) determines how large (in pixels) each cell graphic should be.
     width_no_margin = get_settings().MAX_WIDTH - _scaled_margin * 2
@@ -249,6 +303,11 @@ def _draw_board_images(board):
         _scaled_margin * 2 + _cell_size * _show_height,
     )
     _BOARD_IMAGE = Image.new("RGBA", image_size, (243, 176, 109, 255))
+    smallest_dim = min(board.get_width(), board.get_height())
+    dim = _scaled_margin * 2 + _cell_size * smallest_dim
+    board_texture = _BOARD_TEXTURE.resize((dim, dim), Image.LANCZOS)
+    texture_begin = (-1 * _start_x * _cell_size, -1 * _start_y * _cell_size)
+    _BOARD_IMAGE.paste(board_texture, texture_begin)
     _BOARD_IMAGE_NO_LINES = _BOARD_IMAGE.copy()
 
     draw = ImageDraw.Draw(_BOARD_IMAGE)
@@ -323,10 +382,6 @@ def _draw_board_images(board):
 
     star_point_graphic = _STAR_POINT_IMAGES[star_point_size]
     comp = Image.new("RGBA", image_size, (0, 0, 0, 0))
-    # print(f"board_line_width: {_board_line_width}")
-    # print(f"cell_size: {_cell_size}")
-    # print(f"_draw_cell_size: {_draw_cell_size}")
-    # print(f"diff: {diff}")
     for point in star_points:
         show_x = point[0] - _start_x
         show_y = point[1] - _start_y

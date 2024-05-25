@@ -13,12 +13,19 @@ _num_images_for_white = []
 
 # loads the style's font and creates image resources to speed up processing time.
 def load_font(style_name):
-    global _fonts, _char_images, _nums_for_black_images, _nums_for_white_images
+    global _fonts, _char_images, _num_images_for_black, _num_images_for_white
+
+    _fonts = {}
+    _char_images = {}
+    _num_images_for_black = []
+    _num_images_for_white = []
 
     # loads the style's font in multiple sizes.
     current_dir = os.path.dirname(os.path.abspath(__file__))
     load_dir = os.path.join(current_dir, "_res", get_settings().STYLE_NAME)
     path = os.path.join(load_dir, "font.ttf")
+    if not os.path.exists(path):
+        path = os.path.join(load_dir, "font.otf")
     for font_size in range(
         get_settings().MIN_CELL_SIZE, get_settings().MAX_CELL_SIZE + 1
     ):
@@ -110,22 +117,23 @@ def create_cell_text(cell_size, text, color, scale):
 # returns the resulting image of rendering text
 # and cropping it by its bounding box.
 def _render_cropped_text(cell_size, text, color):
-    PADDING_BOTTOM_PERCENT = 0.05
-    LEFTWARD_ONE_CLIP = int(cell_size * 0.06)
+    LEFTWARD_ONE_CLIP = int(cell_size * get_settings().LEFTWARD_ONE_CLIP_FACTOR)
 
     # draws the text onto a blank transparent image.
     image = Image.new("RGBA", (1200, 300), (0, 0, 0, 0))
     draw = ImageDraw.Draw(image)
     font = _fonts[cell_size]
-    bbox = draw.textbbox((0, 0), text, font=font)
-    draw.text((0, 0), text, fill=color, font=font)
+    bbox = draw.textbbox((300, 0), text, font=font)
+    draw.text((300, 0), text, fill=color, font=font)
 
     # the text will be centered in some larger bounding box.
     # this bounding box is determined using large chars.
     if ord("a") <= ord(text[0]) <= ord("z"):
-        max_bbox = draw.textbbox((0, 0), "b" * len(text), font=font)
+        max_bbox = draw.textbbox((300, 0), "b" * len(text), font=font)
+        is_letters = True
     else:
-        max_bbox = draw.textbbox((0, 0), "0" * len(text), font=font)
+        max_bbox = draw.textbbox((300, 0), "0" * len(text), font=font)
+        is_letters = False
 
     # determines the cropping box for the drawn text.
     max_bbox_width = max_bbox[2] - max_bbox[0]
@@ -144,8 +152,13 @@ def _render_cropped_text(cell_size, text, color):
         start_y = int(bbox[1] - padding_y)
         end_y = int(start_y + bbox_height + padding_y * 2)
     else:
+        if is_letters:
+            PADDING_BOTTOM_PERCENT = get_settings().LETTERS_PADDING_BOTTOM_PERCENT
+        else:
+            PADDING_BOTTOM_PERCENT = get_settings().NUMBERS_PADDING_BOTTOM_PERCENT
         start_y = bbox[3] - max_bbox_height
-        end_y = int(bbox[3] * (1 + PADDING_BOTTOM_PERCENT))
+
+        end_y = int(bbox[1] + (bbox[3] - bbox[1]) * (1 + PADDING_BOTTOM_PERCENT))
 
     crop = image.crop((start_x, start_y, end_x, end_y))
     return crop

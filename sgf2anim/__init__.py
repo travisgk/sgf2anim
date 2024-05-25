@@ -1,5 +1,6 @@
 import os
 import re
+import time
 import numpy as np
 from PIL import Image
 from ._commands import (
@@ -10,18 +11,20 @@ from ._commands import (
     run_command,
 )
 from ._image_resources import (
+    get_stone_images,
     get_board_image,
     get_show_width,
     get_show_height,
     get_cell_size,
     get_scaled_margin,
+    force_reload_style,
     setup_board,
 )
+from ._image_text import create_cell_text
 from ._save_gif import save_GIF_to_file
 from ._settings import get_settings
 
 
-_MODIFIERS = ["AB", "AW", "AE", "AR", "CR", "DD", "LB", "LN", "MA", "SL", "SQ", "TR"]
 _ANNOTATION_FUNC_NAMES = [
     "AR",
     "C",
@@ -36,33 +39,126 @@ _ANNOTATION_FUNC_NAMES = [
     "TR",
 ]
 
+# def process_senseis_library(directory):
+#     return
 
-def process_senseis_library(directory):
-    return
+
+# saves individual stone graphics used in Sensei's Library.
+def save_stone_graphics(stones_directory):
+    GRAPHIC_SIZE = 64
+    MARKS = (("CR", "c.png"), ("SQ", "s.png"), ("TR", "t.png"), ("MA", "x.png"))
+
+    for key, image_extension in MARKS:
+        get_stone_images()[GRAPHIC_SIZE][key].save(
+            os.path.join(stones_directory, "e" + image_extension),
+            format="PNG",
+            compress_level=9,
+        )
+
+    for char, text_color in [
+        ("b", get_settings().NUMBER_COLOR_FOR_BLACK),
+        ("w", get_settings().NUMBER_COLOR_FOR_WHITE),
+    ]:
+        stone_graphic = get_stone_images()[GRAPHIC_SIZE][char.upper()]
+        stone_graphic.save(
+            os.path.join(stones_directory, f"{char}.png"),
+            format="PNG",
+            compress_level=9,
+        )
+
+        for i in range(1, 101):
+            comp = create_cell_text(
+                GRAPHIC_SIZE,
+                str(i),
+                text_color,
+                get_settings().NUMBER_TEXT_SCALE,
+            )
+            image = Image.alpha_composite(stone_graphic, comp)
+            image.save(
+                os.path.join(stones_directory, f"{char}{i}.png"),
+                format="PNG",
+                compress_level=9,
+            )
+
+        for key, image_extension in MARKS:
+            Image.alpha_composite(
+                stone_graphic, get_stone_images()[GRAPHIC_SIZE][key]
+            ).save(
+                os.path.join(stones_directory, char + image_extension),
+                format="PNG",
+                compress_level=9,
+            )
 
 
-def process_directory(directory):
-    all_paths = os.listdir(directory)
-    sgf_paths = [
-        os.path.join(directory, path) for path in all_paths if path.endswith(".sgf")
-    ]
+def process_directory(
+    directory,
+    frame_delay_ms=1500,
+    start_freeze_ms=3000,
+    end_freeze_ms=10000,
+    number_display_ms=500,
+    path_addon="",
+):
+    sgf_paths = find_all_SGF_paths(directory)
+    print(f"there are {len(sgf_paths)} sgf files in {directory}.")
 
     for path in sgf_paths:
-        print(f"\n\n\n{path}")
+        success = False
         get_settings().set_for_animated_diagram()
-        save_diagram(path, save_as_static=False)
+        success = save_diagram(
+            path,
+            False,
+            frame_delay_ms,
+            start_freeze_ms,
+            end_freeze_ms,
+            number_display_ms,
+            path_addon,
+        )
         get_settings().set_for_static_diagram()
-        save_diagram(path, save_as_static=True)
+        success = success and save_diagram(
+            path,
+            True,
+            frame_delay_ms,
+            start_freeze_ms,
+            end_freeze_ms,
+            number_display_ms,
+            path_addon,
+        )
+        if success:
+            print(path)
 
-    print(f"{len(sgf_paths)} sgf files in {directory}")
+
+def find_all_SGF_paths(directory):
+    all_paths = os.listdir(directory)
+    sgf_paths = [os.path.join(directory, p) for p in all_paths if p.endswith(".sgf")]
+    return sgf_paths
+
+
+def change_style(style_name):
+    get_settings().STYLE_NAME = style_name
+    force_reload_style()
 
 
 # returns True if saving the diagram was successful.
-def save_diagram(sgf_path, save_as_static=False):
+# <save_as_static> indicates if it's animated or not.
+# <frame_delay_ms> is the duration of each frame appears in the GIF.
+# <start_freeze_ms> is the duration of the first frame.
+# <end_freeze_ms> is the duration of the last frame.
+# <number_display_ms> is how long the move number annotation
+#                     appears on the stone if they aren't set to be maintained.
+# <path_addon> is text that will before the extension in an output file's name.
+def save_diagram(
+    sgf_path,
+    save_as_static=False,
+    frame_delay_ms=1500,
+    start_freeze_ms=3000,
+    end_freeze_ms=10000,
+    number_display_ms=500,
+    path_addon="",
+):
     # 1) determines if the SGF is usable.
     if not os.path.exists(sgf_path):
         print(f"could not open {sgf_path}.")
-        return
+        return False
 
     with open(sgf_path, "r") as file:
         content = file.read()
@@ -71,19 +167,11 @@ def save_diagram(sgf_path, save_as_static=False):
     node_strings = content.split(";")
 
     if len(node_strings) == 0:
-        return
-    if len(node_strings[0]) == 0:
+        return False
+    while len(node_strings[0]) == 0:
         if len(node_strings) == 1:
-            return
+            return False
         node_strings = node_strings[1:]
-
-    if len(node_strings[0]) >= 1:
-        for modifier in _MODIFIERS:
-            if modifier in node_strings[0]:
-                break
-        else:
-            # no commands in the first node.
-            return
 
     command_lists = [_to_commands(node_str) for node_str in node_strings]
     if len(node_strings) == 1 or (
@@ -94,7 +182,7 @@ def save_diagram(sgf_path, save_as_static=False):
         )
     ):
         print(f"{sgf_path} doesn't need a GIF.")
-        return
+        return False
 
     # 2) sets all the components up.
     board = setup_board(sgf_path, command_lists)
@@ -158,7 +246,10 @@ def save_diagram(sgf_path, save_as_static=False):
             annotations_image = _create_change_image()
 
     # 4) saves the frame(s) to file.
-    save_path = sgf_path[:-4] + (".gif" if not save_as_static else "_copy.png")
+    if not save_as_static:
+        save_path = sgf_path[:-4] + f"{path_addon}.gif"
+    else:
+        save_path = sgf_path[:-4] + f"{path_addon}.png"
 
     try:
         if save_as_static:
@@ -169,14 +260,15 @@ def save_diagram(sgf_path, save_as_static=False):
 
             base_image = base_image.convert("RGB")
             base_image.save(save_path, format="PNG", compress_level=9)
-
-            # palette_size = get_settings().DIAGRAM_PALETTE_SIZE
-            # compressed_image = base_image.quantize(
-            #    colors=palette_size, method=Image.FASTOCTREE
-            # )
-            # compressed_gif.save(save_path, optimize=True, save_all=True)
         else:
-            save_GIF_to_file(save_path, frames)
+            save_GIF_to_file(
+                save_path,
+                frames,
+                frame_delay_ms,
+                start_freeze_ms,
+                end_freeze_ms,
+                number_display_ms,
+            )
     except:
         print(f"{sgf_path} could not be rendered.")
         return False
