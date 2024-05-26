@@ -39,10 +39,10 @@ sgf_path = "capturing-race.sgf"
 sgf2anim.save_diagram(
     sgf_path,
     save_as_static=False,
-    frame_delay_ms=1500,
+    frame_delay_ms=1200,
     start_freeze_ms=3000,
     end_freeze_ms=10000,
-    number_display_ms=1000,
+    number_display_ms=1200,
     path_addon="_output",
 )
 ```
