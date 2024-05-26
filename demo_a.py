@@ -12,11 +12,11 @@ def main():
     # creates a static diagram (and animated diagram, if there are moves)
     # for every .sgf file in the <load_dir>.
     sgf2anim.process_directory(
-        os.path.join(main_dir, load_dir),
-        frame_delay_ms=1500,
+        load_dir,
+        frame_delay_ms=1200,
         start_freeze_ms=3000,
         end_freeze_ms=10000,
-        number_display_ms=1000,
+        number_display_ms=1200,
         path_addon="_output",
     )
 

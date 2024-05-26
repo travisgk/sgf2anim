@@ -192,6 +192,7 @@ def setup_board(sgf_path, commands_lists):
     n_found_cells_wide = max_x - min_x + 1
     n_found_cells_high = max_y - min_y + 1
 
+    original_img_name = sgf_path[:-4] + ".png"
     if get_settings().DOING_SENSEIS_FORMAT and os.path.exists(original_img_name):
         # determines viewport size from a pre-existing accompanying image.
         image = Image.open(original_img_name)
@@ -355,7 +356,6 @@ def _draw_board_images(board):
                 corner_comp.paste(circle, (max_x - off - inc, min_y - off))
             if max_y < image_size[1]:
                 corner_comp.paste(circle, (max_x - off - inc, max_y - off - inc))
-
         _BOARD_IMAGE.alpha_composite(corner_comp)
 
     # 4) determines the positions of star points on the board.
@@ -379,16 +379,18 @@ def _draw_board_images(board):
     # 5) draws the star points onto the board image.
     if _board_line_width % 2 == 1:
         star_point_size = _cell_size + (1 - (_cell_size % 2))
+        off = 0
     else:
         star_point_size = _cell_size + (_cell_size % 2)
+        off = 1 - _cell_size % 2
 
     star_point_graphic = _STAR_POINT_IMAGES[star_point_size]
     comp = Image.new("RGBA", image_size, (0, 0, 0, 0))
     for point in star_points:
         show_x = point[0] - _start_x
         show_y = point[1] - _start_y
-        draw_x = _scaled_margin + show_x * _cell_size
-        draw_y = _scaled_margin + show_y * _cell_size
+        draw_x = _scaled_margin + show_x * _cell_size + off
+        draw_y = _scaled_margin + show_y * _cell_size + off
         comp.paste(star_point_graphic, (draw_x, draw_y))
 
     _BOARD_IMAGE.alpha_composite(comp)

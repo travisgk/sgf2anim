@@ -28,13 +28,9 @@ def save_GIF_to_file(
                 frame = Image.alpha_composite(prev_frame, frame)
 
         if (
-            not is_extra_frame
-            or extra_frame_ms > 0
-            and not (
-                i == n_frames - 1
-                and is_extra_frame
-                and get_settings().MAINTAIN_NUMBERS_AT_END
-            )
+            extra_frame_ms > 0
+            or not is_extra_frame
+            or (i == n_frames - 1 and not get_settings().MAINTAIN_NUMBERS_AT_END)
         ):
             if get_settings().MAINTAIN_STONE_NUMBERS:
                 duration = frame_delay_ms
