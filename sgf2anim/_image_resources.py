@@ -110,7 +110,10 @@ def _load_images():
     # loads the image resources from file.
     current_dir = os.path.dirname(os.path.abspath(__file__))
     load_dir = os.path.join(current_dir, "_res", get_settings().STYLE_NAME)
-    _BOARD_TEXTURE = Image.open(os.path.join(load_dir, "board.png"))
+    board_path = os.path.join(load_dir, "board.png")
+    if not os.path.exists(board_path):
+        board_path = os.path.join(load_dir, "board.jpg")
+    _BOARD_TEXTURE = Image.open(board_path)
 
     loaded_images = {}
     for key, value in _STONE_IMAGE_PATHS.items():

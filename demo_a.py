@@ -13,11 +13,11 @@ def main():
     # for every .sgf file in the <load_dir>.
     sgf2anim.process_directory(
         load_dir,
+        out_path_addon="_output",
         frame_delay_ms=1200,
         start_freeze_ms=3000,
         end_freeze_ms=10000,
         number_display_ms=1200,
-        path_addon="_output",
     )
 
     # saves stone graphics to a directory.

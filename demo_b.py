@@ -20,19 +20,23 @@ def main():
         sgf2anim.get_settings().MAINTAIN_NUMBERS_AT_END = True
         sgf2anim.get_settings().MARKER_INSTEAD_OF_NUMBERS = False
         sgf2anim.get_settings().RENDER_CAPTURES = True
+
+        # saves an animated diagram for the .sgf file.
+        out_path = sgf_path[:-4] + "_output.gif"
         sgf2anim.save_diagram(
             sgf_path,
-            save_as_static=False,
+            out_path=out_path,
             frame_delay_ms=1500,
             start_freeze_ms=3000,
             end_freeze_ms=10000,
             number_display_ms=1000,
-            path_addon="_output",
         )
 
-        # saves a static diagram for the .sgf file.
+        # sets default settings for a static diagram.
         sgf2anim.get_settings().set_for_static_diagram()
-        sgf2anim.save_diagram(sgf_path, save_as_static=True, path_addon="_output")
+
+        out_path = sgf_path[:-4] + "_output.png"
+        sgf2anim.save_diagram(sgf_path, out_path=out_path)
 
     elapsed = time.time() - start_time
     print(f"that took {elapsed:>.2f} seconds.")

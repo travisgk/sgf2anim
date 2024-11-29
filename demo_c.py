@@ -29,25 +29,30 @@ def main():
 
 def process_files(sgf_paths, path_addon):
     for sgf_path in sgf_paths:
-        # saves an animated diagram for the .sgf file.
+        # sets particular settings for GIF output.
         sgf2anim.get_settings().SHOW_STONE_NUMBERS = True
         sgf2anim.get_settings().MAINTAIN_STONE_NUMBERS = False
         sgf2anim.get_settings().MAINTAIN_NUMBERS_AT_END = False
         sgf2anim.get_settings().MARKER_INSTEAD_OF_NUMBERS = False
         sgf2anim.get_settings().RENDER_CAPTURES = True
+
+        # saves an animated diagram for the .sgf file.
+        out_path = sgf_path[:-4] + path_addon + ".gif"
         sgf2anim.save_diagram(
             sgf_path,
-            save_as_static=False,
+            out_path=out_path,
             frame_delay_ms=1600,
             start_freeze_ms=3000,
             end_freeze_ms=9000,
             number_display_ms=900,
-            path_addon=path_addon,
         )
 
-        # saves a static diagram for the .sgf file.
+        # sets default settings for a static diagram.
         sgf2anim.get_settings().set_for_static_diagram()
-        sgf2anim.save_diagram(sgf_path, save_as_static=True, path_addon=path_addon)
+
+        # saves a static diagram for the .sgf file.
+        out_path = sgf_path[:-4] + path_addon + ".png"
+        sgf2anim.save_diagram(sgf_path, out_path=out_path)
         print(sgf_path)
 
 

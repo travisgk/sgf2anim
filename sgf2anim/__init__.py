@@ -20,6 +20,7 @@ from ._image_resources import (
     setup_board,
 )
 from ._image_text import create_cell_text
+from ._katrain_file import *
 from ._save_gif import save_GIF_to_file
 from ._settings import get_settings
 
@@ -38,12 +39,9 @@ _ANNOTATION_FUNC_NAMES = [
     "TR",
 ]
 
-# def process_senseis_library(directory):
-#     return
-
 
 # saves individual stone graphics used in Sensei's Library.
-def save_stone_graphics(stones_directory):
+def save_stone_graphics(stones_directory: str):
     GRAPHIC_SIZE = 64
     MARKS = (("CR", "c.png"), ("SQ", "s.png"), ("TR", "t.png"), ("MA", "x.png"))
 
@@ -90,12 +88,12 @@ def save_stone_graphics(stones_directory):
 
 
 def process_directory(
-    directory,
-    frame_delay_ms=1500,
-    start_freeze_ms=3000,
-    end_freeze_ms=10000,
-    number_display_ms=500,
-    path_addon="",
+    directory: str,
+    out_path_addon: str = "",
+    frame_delay_ms: int = 1500,
+    start_freeze_ms: int = 3000,
+    end_freeze_ms: int = 10000,
+    number_display_ms: int = 500,
 ):
     sgf_paths = find_all_SGF_paths(directory)
     print(f"there are {len(sgf_paths)} sgf files in {directory}.")
@@ -105,54 +103,62 @@ def process_directory(
         get_settings().set_for_animated_diagram()
         success = save_diagram(
             path,
-            False,
+            path[:-4] + out_path_addon + ".gif",
             frame_delay_ms,
             start_freeze_ms,
             end_freeze_ms,
             number_display_ms,
-            path_addon,
         )
         get_settings().set_for_static_diagram()
         success = success and save_diagram(
             path,
-            True,
+            path[:-4] + out_path_addon + ".png",
             frame_delay_ms,
             start_freeze_ms,
             end_freeze_ms,
             number_display_ms,
-            path_addon,
         )
-        if success:
-            print(path)
 
 
-def find_all_SGF_paths(directory):
+def find_all_SGF_paths(directory: str):
     all_paths = os.listdir(directory)
     sgf_paths = [os.path.join(directory, p) for p in all_paths if p.endswith(".sgf")]
     return sgf_paths
 
 
 # returns True if saving the diagram was successful.
-# <save_as_static> indicates if it's animated or not.
 # <frame_delay_ms> is the duration of each frame appears in the GIF.
 # <start_freeze_ms> is the duration of the first frame.
 # <end_freeze_ms> is the duration of the last frame.
 # <number_display_ms> is how long the move number annotation
 #                     appears on the stone if they aren't set to be maintained.
-# <path_addon> is text that will before the extension in an output file's name.
 def save_diagram(
-    sgf_path,
-    save_as_static=False,
-    frame_delay_ms=1500,
-    start_freeze_ms=3000,
-    end_freeze_ms=10000,
-    number_display_ms=500,
-    path_addon="",
+    sgf_path: str,
+    out_path: str = None,
+    frame_delay_ms: int = 1500,
+    start_freeze_ms: int = 3000,
+    end_freeze_ms: int = 10000,
+    number_display_ms: int = 500,
 ):
+    save_as_static = not out_path.endswith(".gif")
+
     # 1) determines if the SGF is usable.
     if not os.path.exists(sgf_path):
         print(f"could not open {sgf_path}.")
         return False
+
+    used_temp_file = False
+    temp_path = sgf_path[:-4] + "-temp.sgf"
+
+    def delete_temp_file():
+        # deletes the temporary .sft file if one was created.
+        if used_temp_file:
+            os.remove(temp_path)
+
+    if is_katrain_file(sgf_path):
+        used_temp_file = True
+        create_cleaned_katrain_file(in_path=sgf_path, out_path=temp_path)
+        sgf_path = temp_path
 
     with open(sgf_path, "r") as file:
         content = file.read()
@@ -161,9 +167,11 @@ def save_diagram(
     node_strings = content.split(";")
 
     if len(node_strings) == 0:
+        print("No node strings were found.")
         return False
     while len(node_strings[0]) == 0:
         if len(node_strings) == 1:
+            print("Only one node string was found.")
             return False
         node_strings = node_strings[1:]
 
@@ -202,6 +210,7 @@ def save_diagram(
         # any move number command will always be run first.
         for j, command in enumerate(commands):
             function_name, parameters = command
+
             if function_name == "MN":
                 set_move_num(int(parameters[0]))
                 del commands[j]
@@ -244,11 +253,6 @@ def save_diagram(
             annotations_image = _create_change_image()
 
     # 4) saves the frame(s) to file.
-    if not save_as_static:
-        save_path = sgf_path[:-4] + f"{path_addon}.gif"
-    else:
-        save_path = sgf_path[:-4] + f"{path_addon}.png"
-
     try:
         if save_as_static:
             base_image.alpha_composite(stones_image)
@@ -257,10 +261,10 @@ def save_diagram(
                 base_image.alpha_composite(get_line_annotations_image())
 
             base_image = base_image.convert("RGB")
-            base_image.save(save_path, format="PNG", compress_level=9)
+            base_image.save(out_path, format="PNG", compress_level=9)
         else:
             save_GIF_to_file(
-                save_path,
+                out_path,
                 frames,
                 frame_delay_ms,
                 start_freeze_ms,
@@ -269,13 +273,15 @@ def save_diagram(
             )
     except:
         print(f"{sgf_path} could not be rendered.")
+        delete_temp_file()
         return False
 
+    delete_temp_file()
     return True
 
 
 # returns the given string with all comment commands removed.
-def _remove_comments(content):
+def _remove_comments(content: str):
     pattern = r'GN\[|C\["?'
     while True:
         start_match = re.search(pattern, content)
@@ -298,7 +304,7 @@ def _remove_comments(content):
 
 # returns a string broken down
 # into strings of commands tuples (function name + param).
-def _to_commands(node_str):
+def _to_commands(node_str: str):
     commands = []
     while True:
         start_match = re.search(r"[A-Z]\[", node_str)
