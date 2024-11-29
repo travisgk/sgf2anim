@@ -23,10 +23,11 @@ pip install pillow imageio
 ```
 import sgf2anim
 sgf_path = "my-sgf.sgf"
+out_path = "my-sgf-output.sgf"
 sgf2anim.get_settings().set_for_static_diagram()
-sgf2anim.save_diagram(sgf_path, save_as_static=True, path_addon="_output")
+sgf2anim.save_diagram(sgf_path, out_path=out_path)
 ```
-This will create a static diagram and save it as "my-sgf_output.png" in the same directory.
+This will create a static diagram and save it as "my-sgf-output.png" in the same directory.
 
 <br>
 
@@ -35,23 +36,23 @@ This will create a static diagram and save it as "my-sgf_output.png" in the same
 ```
 import sgf2anim
 sgf_path = "capturing-race.sgf"
-
+out_path = "capturing-race.gif"
 sgf2anim.save_diagram(
     sgf_path,
+    out_path=out_path,
     save_as_static=False,
     frame_delay_ms=1200,
     start_freeze_ms=3000,
     end_freeze_ms=10000,
     number_display_ms=1200,
-    path_addon="_output",
 )
 ```
 - ```sgf_path``` provides the path for the SGF file to process.
+- ```out_path``` provides the path for the image to be written to. It must either be a .png or a .gif.
 - ```frame_delay_ms``` is the duration that one node in the SGF will be shown.
 - ```start_freeze_ms``` is the duration of the first frame.
 - ```end_freeze_ms``` is the duration of the last frame.
 - ```number_display_ms``` is the duration of the ```frame_delay_ms``` that will show the move number (or placement marker) on the stone.
-- ```path_addon``` is a string that will be added to the output file name (which will be ```sgf_path``` with the extension stripped).
 
 <br>
 
@@ -62,11 +63,11 @@ sgf_dir = "directory"
 
 sgf2anim.process_directory(
     sgf_dir,
+    out_path_addon="-output",
     frame_delay_ms=1500,
     start_freeze_ms=3000,
     end_freeze_ms=10000,
     number_display_ms=1000,
-    path_addon="_output",
 )
 ```
 The ```process_directory``` function will find any SGF files in the given directory and create both a static and animated diagram for all of them.
@@ -102,7 +103,7 @@ sgf2anim.get_settings().LINE_THICKNESS = 1.2
 sgf2anim.get_settings().MARKER_COLOR = (46, 84, 105)
 
 sgf_path = "false-eyes"
-sgf2anim.save_diagram(sgf_path, save_as_static=True, path_addon="_frost")
+sgf2anim.save_diagram(sgf_path, "false-eyes-output.gif")
 ```
 
 <br>
