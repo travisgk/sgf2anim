@@ -208,7 +208,7 @@ class WeiqiBoard:
         index = player_num - 1
         self._board[index][p[0]][p[1]] = _ONE_HOT_TRUE
 
-    def add_empty_space(self, p):
+    def set_empty_space(self, p):
         for i in range(self._N_PLAYERS):
             self._board[i][p[0]][p[1]] = _ONE_HOT_FALSE
 
